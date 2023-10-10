@@ -1,0 +1,4 @@
+pandas
+Django
+django-cors-headers
+djangorestframework
