@@ -1,1 +1,3 @@
-random-data-files/
+random-data-files/data2.json
+random_table/__pycache__/
+core/__pycache__/
