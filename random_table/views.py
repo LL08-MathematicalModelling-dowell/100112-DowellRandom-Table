@@ -28,10 +28,12 @@ def client_home(request):
 class ClientSearch(APIView):
 
     def get(self, request):
-        column = request.GET.get('column')
-        regex = request.GET.get('regex')
-        size = request.GET.get('size')
-        df = SearchManager.getInstance().fetch_by_regex(column, regex, int(size))
-        result = df.to_dict("records")
-        
-        return JsonResponse({'data': result}, status=200)
+        try: 
+            column = request.GET.get('column')
+            regex = request.GET.get('regex')
+            size = request.GET.get('size')
+            df = SearchManager.getInstance().fetch_by_regex(column, regex, int(size))
+            result = df.to_dict("records")
+            return JsonResponse({'data': result}, status=200)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
