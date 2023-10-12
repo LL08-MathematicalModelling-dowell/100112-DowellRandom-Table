@@ -2,7 +2,7 @@ import pandas as pd
 
 class SearchEngine:
     def __init__(self):
-        self.df = pd.read_json("random-data-files/data1.json").astype(str)
+        self.df = pd.read_json("/home/uxlivinglab200112/100112-DowellRandom-Table/random-data-files/data1.json").astype(str)
 
     def fetch_by_regex(self , column, regex , size):
         df = self.df[self.df[column].str.contains(regex, regex= True, na=False)]
