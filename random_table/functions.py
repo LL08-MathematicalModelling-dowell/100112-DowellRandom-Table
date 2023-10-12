@@ -8,8 +8,6 @@ class SearchEngine:
         df = self.df[self.df[column].str.contains(regex, regex= True, na=False)]
         return df.head(size)
 
-
-
 class SearchManager:
     __instance = None
 

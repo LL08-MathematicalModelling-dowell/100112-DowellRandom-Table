@@ -1,23 +1,27 @@
 $('#submit').click(function() {
 
-
     const column = $('#column').val();
     const regex = $('#regex').val();
     const size = $('#size').val();
+    const position = $('#position').val();
     const data = {
         column: column,
         regex: regex,
-        size: size
+        size: size,
+        position: position
     };
 
+    $('#submit_group').empty()
+    .append('<button type="button" class="btn btn-primary" id="next">Next</button>')
+    .append('<button type="button" class="btn btn-primary" id="previous">Previous</button>');
+
     $.ajax({
-        type: 'POST',
-        url: 'pandas/',
-        data: JSON.stringify(data),
+        type: 'GET',
+        url: 'pandas/?column=' + data.column + '&regex=' + data.regex + '&size=' + data.size + '&position=' + data.position,
         contentType: 'application/json',
         success: function(data) {
-            let csvData = jsonToCsv(data["data"]); // Add .items.data
-            // Create a CSV file and allow the user to download it
+            console.log(data);
+            let csvData = jsonToCsv(data["data"]);
             let blob = new Blob([csvData], { type: 'text/csv' });
             let url = window.URL.createObjectURL(blob);
             let a = document.createElement('a');
@@ -25,12 +29,13 @@ $('#submit').click(function() {
             a.download = 'data.csv';
             document.body.appendChild(a);
             a.click();
-
+            window.location.href = url;
         },
         error: function(error) {
             console.log(error);
         }
     });
+    
 });
 
 

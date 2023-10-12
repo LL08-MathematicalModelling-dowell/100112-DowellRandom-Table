@@ -1,16 +1,12 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from django.http import JsonResponse
-from rest_framework.response import Response
+#from rest_framework.response import Response
 #from .spark import SparkSes
 from .functions import *
-import json
-
-#spark = SparkSes("CLIENT/static/data_filter.json")
-
-def client_home(request):
-    return render(request, 'client_home.html')
-
+#import json
+'''
+spark = SparkSes("CLIENT/static/data_filter.json")
 class ClientAdd(APIView):
 
     def post(self, request):
@@ -24,15 +20,18 @@ class ClientAdd(APIView):
         except Exception as e:
             print(e)
             return Response({'error': str(e)}, status=500)
+'''
+
+def client_home(request):
+    return render(request, 'client_home.html')
 
 class ClientSearch(APIView):
 
-    def post(self, request):
-        data = request.data
-
-        df = SearchManager.getInstance().fetch_by_regex(data['column'], data['regex'] , int(data['size']))
-        print("result------", len(df.index))
-        # use to dict
+    def get(self, request):
+        column = request.GET.get('column')
+        regex = request.GET.get('regex')
+        size = request.GET.get('size')
+        df = SearchManager.getInstance().fetch_by_regex(column, regex, int(size))
         result = df.to_dict("records")
+        
         return JsonResponse({'data': result}, status=200)
-
