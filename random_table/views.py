@@ -1,26 +1,9 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
 from django.http import JsonResponse
-#from rest_framework.response import Response
-#from .spark import SparkSes
-from .functions import *
-#import json
-'''
-spark = SparkSes("CLIENT/static/data_filter.json")
-class ClientAdd(APIView):
 
-    def post(self, request):
-        data = request.data
-        print(data)
-        try:
-            df = spark.search_by_regex(data['column'], data['regex'] , int(data['size']))
-            result = df.toJSON().collect()
-            data_list = [json.loads(item) for item in result]
-            return Response({'data': data_list}, status=200)
-        except Exception as e:
-            print(e)
-            return Response({'error': str(e)}, status=500)
-'''
+from .functions import *
+
 
 def client_home(request):
     return render(request, 'client_home.html')
@@ -28,12 +11,22 @@ def client_home(request):
 class ClientSearch(APIView):
 
     def get(self, request):
-        try: 
+        try:
             column = request.GET.get('column')
             regex = request.GET.get('regex')
             size = request.GET.get('size')
-            df = SearchManager.getInstance().fetch_by_regex(column, regex, int(size))
+            position = request.GET.get('position', "1")
+
+            size = int(size)
+            try:
+                position = int(position)
+            except Exception as e:
+                position=1
+
+            next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/pandas/?column=field1&regex={regex}&size={size}&position={position+size}"
+
+            df = SearchManager.getInstance().fetch_by_regex(column, regex, size, position)
             result = df.to_dict("records")
-            return JsonResponse({'data': result}, status=200)
+            return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
