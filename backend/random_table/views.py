@@ -5,6 +5,7 @@ from django.http import JsonResponse
 #from .spark import SparkSes
 from .functions import *
 #import json
+
 '''
 spark = SparkSes("CLIENT/static/data_filter.json")
 class ClientAdd(APIView):
@@ -22,17 +23,14 @@ class ClientAdd(APIView):
             return Response({'error': str(e)}, status=500)
 '''
 
-def client_home(request):
-    return render(request, 'client_home.html')
-
 class ClientSearch(APIView):
 
     def get(self, request):
         try: 
-            column = request.GET.get('column')
+            field = request.GET.get('field')
             regex = request.GET.get('regex')
             size = request.GET.get('size')
-            df = SearchManager.getInstance().fetch_by_regex(column, regex, int(size))
+            df = SearchManager.getInstance().fetch_by_regex(field, regex, int(size))
             result = df.to_dict("records")
             return JsonResponse({'data': result}, status=200)
         except Exception as e:
