@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-42)03m&y=2qf0!bts0#3)7$g6dweadj5@9_@o^l@4v5aiw#zg_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['uxlivinglab200112.pythonanywhere.com']
+ALLOWED_HOSTS = ['uxlivinglab200112.pythonanywhere.com' ,'127.0.0.1']
 
 
 # Application definition
@@ -54,8 +54,9 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
 ]
 
-
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
 
 ROOT_URLCONF = 'core.urls'
 
