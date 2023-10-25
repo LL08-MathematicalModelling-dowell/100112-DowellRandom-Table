@@ -27,11 +27,23 @@ class ClientSearch(APIView):
 
     def get(self, request):
         try: 
-            field = request.GET.get('field')
-            regex = request.GET.get('regex')
-            size = request.GET.get('size')
-            df = SearchManager.getInstance().fetch_by_regex(field, regex, int(size))
-            result = df.to_dict("records")
+            fields = request.GET.get('fields').split(',')
+            filter_methods = request.GET.get('filter_methods').split(',')
+            values = request.GET.get('values').split(',')
+            position = request.GET.get('position')
+            
+            if len(fields) != len(filter_methods) or len(filter_methods) != len(values):
+                return JsonResponse({'error': 'Mismatched number of fields, filter methods, and values'}, status=400)
+
+            result = []
+
+            for i in range(len(fields)):
+                field = fields[i]
+                filter_method = filter_methods[i]
+                value = values[i]
+                df = SearchManager.getInstance().fetch_by_filter(field, filter_method, value, int(position))
+                result.extend(df.to_dict("records"))
+
             return JsonResponse({'data': result}, status=200)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

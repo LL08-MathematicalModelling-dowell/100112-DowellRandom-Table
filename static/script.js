@@ -17,7 +17,7 @@ $('#submit').click(function() {
 
     $.ajax({
         type: 'GET',
-        url: 'pandas/?column=' + data.column + '&regex=' + data.regex + '&size=' + data.size + '&position=' + data.position,
+        url: 'pandas/?fields=' + data.fields.join(',') + '&filter_methods=' + data.filter_methods.join(',') + '&values=' + data.values.join(',') + '&position=' + data.position,
         contentType: 'application/json',
         success: function(data) {
             console.log(data);
