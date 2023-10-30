@@ -36,6 +36,14 @@ class SearchEngine:
         df = self.df[self.df[column] < value]
         return df.head(size)
     
+    def filter_by_between(self , column, value , size):
+        df = self.df[(self.df[column] > value[0]) & (self.df[column] < value[1])]
+        return df.head(size)
+    
+    def filter_by_not_between(self , column, value , size):
+        df = self.df[~((self.df[column] > value[0]) & (self.df[column] < value[1]))]
+        return df.head(size)
+    
     def fetch_by_filter(self , column, filter_method , value , position):
         if filter_method == 'regex':
             return self.fetch_by_regex(column, value, position)
@@ -53,6 +61,10 @@ class SearchEngine:
             return self.filter_by_greater_than(column, value, position)
         elif filter_method == 'less_than':
             return self.filter_by_less_than(column, value, position)
+        elif filter_method == 'between':
+            return self.filter_by_between(column, value, position)
+        elif filter_method == 'not_between':
+            return self.filter_by_not_between(column, value, position)
 
 class SearchManager:
     __instance = None
