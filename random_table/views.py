@@ -4,6 +4,7 @@ from django.http import JsonResponse
 #from rest_framework.response import Response
 #from .spark import SparkSes
 from .functions import *
+import numpy as np
 #import json
 
 '''
@@ -26,24 +27,30 @@ class ClientAdd(APIView):
 class ClientSearch(APIView):
 
     def get(self, request):
-        try: 
-            fields = request.GET.get('fields').split(',')
-            filter_methods = request.GET.get('filter_methods').split(',')
-            values = request.GET.get('values').split(',')
-            position = request.GET.get('position')
-            
-            if len(fields) != len(filter_methods) or len(filter_methods) != len(values):
-                return JsonResponse({'error': 'Mismatched number of fields, filter methods, and values'}, status=400)
+#        try: 
+        filter_method = request.GET.get('filter_method')
+        value = request.GET.get('value')
+        mini = request.GET.get('minimum', 0)
+        maxi = request.GET.get('maximum', 0)
+        position = int(request.GET.get('position', "1"))
+        size = int(request.GET.get('size', "1"))
+        number_of_fields = int(request.GET.get('set_size', "10"))
+        
+        next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/pandas/?set_size=field1&filter_method={filter_method}&size={size}&position={position+size}&value={value}&minimum={mini}&maxi={maxi}"
 
-            result = []
+        se = SearchEngine(size, position)
+        rf = se.filter_by_method(filter_method, value, mini, maxi)
 
-            for i in range(len(fields)):
-                field = fields[i]
-                filter_method = filter_methods[i]
-                value = values[i]
-                df = SearchManager.getInstance().fetch_by_filter(field, filter_method, value, int(position))
-                result.extend(df.to_dict("records"))
+        result = []
+        arr = []
+        for d in rf:
+                arr.append(d)
+                if len(arr)==number_of_fields:
+                        result.append(arr)
+                        arr = []
 
-            return JsonResponse({'data': result}, status=200)
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+        # reshaped = rf.values.resize((int(rf.shape[0]/number_of_fields), number_of_fields), refcheck=False)
+
+        return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
+#        except Exception as e:
+#            return JsonResponse({'error': str(e)}, status=500)

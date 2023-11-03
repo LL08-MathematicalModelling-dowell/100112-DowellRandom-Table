@@ -1,82 +1,113 @@
 import pandas as pd
+DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
+API_KEY = "wp#!zf&}GPiy06'7'G%3:6]l;].V|<[KIsmlGZCcgm9Enx664fi1psHbJWBM1FZK"
+import requests
+import json
 
+column = "column"
 class SearchEngine:
-    def __init__(self):
-        self.df = pd.read_json("random-data-files/data1.json").astype(str)
+    def __init__(self, size, position):
+        self.df = None
+        if not position:
+            position = 1
 
-    def fetch_by_regex(self , column, regex , size):
-        df = self.df[self.df[column].str.contains(regex, regex= True, na=False)]
-        return df.head(size)
+        dfs = []
+        for i in range(position, position+size):
+            data = fetch('collection_'+str(i))
+            if not data:
+                continue
+            dfs = dfs + data
+
+        self.df = pd.Series(dfs)
+
+
+    def fetch_by_regex(self, regex):
+        print(regex)
+        df = self.df[self.df.astype(str).str.contains(regex, regex= True, na=False)]
+        return df
     
-    def filter_by_contains(self , column, value , size):
-        df = self.df[self.df[column].str.contains(value, regex= False, na=False)]
-        return df.head(size)
+    def filter_by_contains(self, value):
+        df =  self.df[self.df.astype(str).str.contains(value, regex= False, na=False)]
+        return df
     
-    def filter_by_not_contains(self , column, value , size):
-        df = self.df[~self.df[column].str.contains(value, regex= False, na=False)]
-        return df.head(size)
+    def filter_by_not_contains(self, value):
+        df = self.df[self.df.astype(str).str.contains(value, regex= False, na=False)]
+        return df
     
-    def filter_by_exact(self , column, value , size):
-        df = self.df[self.df[column] == value]
-        return df.head(size)
+    def filter_by_exact(self, value):
+       pass
     
-    def filter_by_starts_with(self , column, value , size):
-        df = self.df[self.df[column].str.startswith(value, na=False)]
-        return df.head(size)
+    def filter_by_starts_with(self, value):
+        df = self.df[self.df.astype(str).str.startswith(value, na=False)]
+        return df
     
-    def filter_by_ends_with(self , column, value , size):
-        df = self.df[self.df[column].str.endswith(value, na=False)]
-        return df.head(size)
+    def filter_by_ends_with(self, value):
+        df = self.df[self.df.astype(str).str.endswith(value, na=False)]
+        return df
     
-    def filter_by_greater_than(self , column, value , size):
-        df = self.df[self.df[column] > value]
-        return df.head(size)
+    def filter_by_greater_than(self, value):
+        df = self.df[self.df > int(value)]
+
+        return df
     
-    def filter_by_less_than(self , column, value , size):
-        df = self.df[self.df[column] < value]
-        return df.head(size)
+    def filter_by_less_than(self, value):
+        df = self.df[self.df < int(value)]
+
+        return df
     
-    def filter_by_between(self , column, value , size):
-        df = self.df[(self.df[column] > value[0]) & (self.df[column] < value[1])]
-        return df.head(size)
+    def filter_by_between(self, minimum, maximum):
+        df = self.df[(self.df > minimum) & (self.df< maximum)]
+        return df
     
-    def filter_by_not_between(self , column, value , size):
-        df = self.df[~((self.df[column] > value[0]) & (self.df[column] < value[1]))]
-        return df.head(size)
+    def filter_by_not_between(self, minimum, maximum):
+        df = self.df[~(self.df[(self.df > minimum) & (self.df < maximum)])]
+        return df
     
-    def fetch_by_filter(self , column, filter_method , value , position):
+    def filter_by_method(self, filter_method , value, minimum=None, maximum=None):
         if filter_method == 'regex':
-            return self.fetch_by_regex(column, value, position)
+            return self.fetch_by_regex(value)
         elif filter_method == 'contains':
-            return self.filter_by_contains(column, value, position)
+            return self.filter_by_contains(value)
         elif filter_method == 'not_contains':
-            return self.filter_by_not_contains(column, value, position)
+            return self.filter_by_not_contains(value)
         elif filter_method == 'exact':
-            return self.filter_by_exact(column, value, position)
+            return self.filter_by_exact(value)
         elif filter_method == 'starts_with':
-            return self.filter_by_starts_with(column, value, position)
+            return self.filter_by_starts_with(value)
         elif filter_method == 'ends_with':
-            return self.filter_by_ends_with(column, value, position)
+            return self.filter_by_ends_with(value)
         elif filter_method == 'greater_than':
-            return self.filter_by_greater_than(column, value, position)
+            return self.filter_by_greater_than(value)
         elif filter_method == 'less_than':
-            return self.filter_by_less_than(column, value, position)
-        elif filter_method == 'between':
-            return self.filter_by_between(column, value, position)
-        elif filter_method == 'not_between':
-            return self.filter_by_not_between(column, value, position)
+            return self.filter_by_less_than(value)
+        elif filter_method == 'in_between':
+            return self.filter_by_between(int(minimum), int(maximum))
+        elif filter_method == 'not_in_between':
+            return self.filter_by_not_between(int(minimum), int(maximum))
 
-class SearchManager:
-    __instance = None
 
-    def __init__(self ):
-        if SearchManager.__instance != None:
-            raise Exception("This class is a singleton!")
-        else:
-           SearchManager.__instance = SearchEngine()
+def fetch(coll):
+    data = {
+        "api_key": API_KEY,
+        "operation":"fetch",
+        "db_name": "random_table",
+        "coll_name": coll,
+        "filters": {}
+    }
 
-    @staticmethod
-    def getInstance():
-        if SearchManager.__instance == None:
-            SearchManager()
-        return SearchManager.__instance
+
+    response = requests.get(DB_URL, data=data)
+    try:
+        response_data = json.loads(response.text)
+    except Exception as e:
+        return None
+    result = []
+    for rd in response_data['data']:
+        for key in rd:
+            if key == "_id" or key== "index":
+                continue 
+            
+            result.append(rd[key])
+    return result
+
+
