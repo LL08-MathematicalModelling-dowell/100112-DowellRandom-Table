@@ -1,15 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  TextField,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  Box,
-  Button,
-  CircularProgress,
-  Typography,
-} from "@mui/material";
+import { TextField, Select, MenuItem, Button, Box } from "@mui/material";
 
 import { useGetClient } from "./getClient";
 import { Status } from "./status";
@@ -31,27 +21,47 @@ const Search = () => {
 
   const [size, setSize] = useState("");
   const [randomTableSize, setRandomTableSize] = useState("");
+  const [nextLink, setNextLink] = useState();
 
   const [selectedFilterMethod, setSelectedFilterMethod] = useState(
     FilteringMethods[0]
   );
 
   const { status, responseData, reload } = useGetClient(
-    `/api?set_size=${randomTableSize}&size=${size}&filter_method=${
+    `http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${
       selectedFilterMethod.method
     }${filterValuesParams(searchValues)}`
   );
 
+  const {
+    status: nextStatus,
+    responseData: nextResponseData,
+    reload: reloadNextData,
+  } = useGetClient(nextLink);
+
   const submitRandomTableRequest = () => {
-    console.log(size, selectedFilterMethod.method, searchValues);
     reload();
   };
 
   useEffect(() => {
     if (status == Status.Success && responseData !== undefined) {
       downloadCsvfile(responseData["data"]);
+      setNextLink(responseData["next_data_link"]);
+      return;
     }
+    status === Status.Error && alert("something went wrong! please try again");
   }, [status, responseData]);
+
+  useEffect(() => {
+    if (nextStatus == Status.Success && nextResponseData !== undefined) {
+      downloadCsvfile(nextResponseData["data"]);
+      setNextLink(nextResponseData["next_data_link"]);
+      return;
+    }
+
+    nextStatus === Status.Error &&
+      alert("something went wrong! please try again");
+  }, [nextStatus, nextResponseData]);
 
   return (
     <>
@@ -118,12 +128,24 @@ const Search = () => {
             />
           );
         })}
-
-        <Button variant="contained" onClick={submitRandomTableRequest}>
-          {status === Status.Pending ? "loading..." : "Submit"}
-        </Button>
       </Box>
-      <Typography>{responseData?.next_data_link}</Typography>
+      {responseData === undefined || (
+        <Button
+          onClick={reloadNextData}
+          variant="contained"
+          disabled={nextStatus === Status.Pending}
+        >
+          {nextStatus === Status.Pending ? "loading..." : "Next Data"}
+        </Button>
+      )}
+
+      <Button
+        variant="contained"
+        onClick={submitRandomTableRequest}
+        disabled={status === Status.Pending}
+      >
+        {status === Status.Pending ? "loading..." : "Submit"}
+      </Button>
     </>
   );
 };
@@ -131,6 +153,11 @@ const Search = () => {
 export default Search;
 
 const FilteringMethods = [
+  {
+    label: "No filtering",
+    method: "no_filtering",
+    inputs: [],
+  },
   { label: "Regex", method: "regex", inputs: ["value"] },
 
   {
@@ -158,19 +185,13 @@ const FilteringMethods = [
   },
 
   {
-    label: "Exact",
-    method: "exact",
-    inputs: ["value"],
-  },
-
-  {
     label: "In between",
     method: "in_between",
     inputs: ["minimum", "maximum"],
   },
 
   {
-    label: "not in between",
+    label: "Not in between",
     method: "not_in_between",
     inputs: ["minimum", "maximum"],
   },
@@ -182,6 +203,22 @@ const FilteringMethods = [
   {
     label: "Less than",
     method: "less_than",
+    inputs: ["value"],
+  },
+  {
+    label: "Odd",
+    method: "odd",
+    inputs: [],
+  },
+  {
+    label: "Even",
+    method: "even",
+    inputs: [],
+  },
+
+  {
+    label: "Multiple of",
+    method: "multiple_of",
     inputs: ["value"],
   },
 ];

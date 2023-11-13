@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from .functions import *
 import numpy as np
 #import json
+import math
 
 '''
 spark = SparkSes("CLIENT/static/data_filter.json")
@@ -29,14 +30,14 @@ class ClientSearch(APIView):
     def get(self, request):
 #        try: 
         filter_method = request.GET.get('filter_method')
-        value = request.GET.get('value')
-        mini = request.GET.get('minimum', 0)
-        maxi = request.GET.get('maximum', 0)
+        value = request.GET.get('value', "")
+        mini = request.GET.get('minimum', "0")
+        maxi = request.GET.get('maximum', "0")
         position = int(request.GET.get('position', "1"))
         size = int(request.GET.get('size', "1"))
         number_of_fields = int(request.GET.get('set_size', "10"))
         
-        next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/pandas/?set_size=field1&filter_method={filter_method}&size={size}&position={position+size}&value={value}&minimum={mini}&maxi={maxi}"
+        next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/api/?set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
 
         se = SearchEngine(size, position)
         rf = se.filter_by_method(filter_method, value, mini, maxi)

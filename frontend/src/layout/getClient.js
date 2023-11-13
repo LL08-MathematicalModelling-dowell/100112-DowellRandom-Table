@@ -8,7 +8,7 @@ export const useGetClient = (url) => {
   const fetchData = useCallback(async () => {
     setStatus(Status.Pending);
 
-    const response = await fetch(`http://127.0.0.1:8000${url}`);
+    const response = await fetch(url);
 
     if (response.status === 200) {
       setStatus(Status.Success);

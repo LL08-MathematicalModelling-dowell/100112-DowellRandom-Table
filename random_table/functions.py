@@ -1,4 +1,6 @@
 import pandas as pd
+import math  
+
 DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
 API_KEY = "wp#!zf&}GPiy06'7'G%3:6]l;].V|<[KIsmlGZCcgm9Enx664fi1psHbJWBM1FZK"
 import requests
@@ -8,17 +10,18 @@ column = "column"
 class SearchEngine:
     def __init__(self, size, position):
         self.df = None
+        required_collection = math.ceil(size/10000)
         if not position:
             position = 1
 
         dfs = []
-        for i in range(position, position+size):
+        for i in range(position, position+required_collection):
             data = fetch('collection_'+str(i))
             if not data:
                 continue
             dfs = dfs + data
 
-        self.df = pd.Series(dfs)
+        self.df = pd.Series(dfs[:size])
 
 
     def fetch_by_regex(self, regex):
@@ -60,18 +63,36 @@ class SearchEngine:
         return df
     
     def filter_by_not_between(self, minimum, maximum):
-        df = self.df[~(self.df[(self.df > minimum) & (self.df < maximum)])]
+
+
+        min_df = self.df[self.df < minimum]
+      
+        max_df = self.df[self.df > maximum]
+        return pd.concat([min_df,max_df])
+
+
+    def filter_by_odd(self):
+        df = self.df[(self.df%2!=0)]
         return df
-    
+
+    def filter_by_even(self):
+        df = self.df[self.df%2==0]
+        return df
+    def filter_by_multiple_of(self, value):
+        df = self.df[self.df%value==0]
+        return df
+
+    def filter_by_no_filtering(self):
+        return self.df
+
     def filter_by_method(self, filter_method , value, minimum=None, maximum=None):
+        print(minimum, maximum)
         if filter_method == 'regex':
             return self.fetch_by_regex(value)
         elif filter_method == 'contains':
             return self.filter_by_contains(value)
         elif filter_method == 'not_contains':
             return self.filter_by_not_contains(value)
-        elif filter_method == 'exact':
-            return self.filter_by_exact(value)
         elif filter_method == 'starts_with':
             return self.filter_by_starts_with(value)
         elif filter_method == 'ends_with':
@@ -84,6 +105,16 @@ class SearchEngine:
             return self.filter_by_between(int(minimum), int(maximum))
         elif filter_method == 'not_in_between':
             return self.filter_by_not_between(int(minimum), int(maximum))
+
+        elif filter_method == 'odd':
+            return self.filter_by_odd()
+        elif filter_method == 'even':
+            return self.filter_by_even()
+        elif filter_method == 'multiple_of':
+            return self.filter_by_multiple_of(value)
+        elif filter_method == 'no_filtering':
+            return self.filter_by_no_filtering()
+
 
 
 def fetch(coll):
