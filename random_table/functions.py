@@ -6,6 +6,8 @@ API_KEY = "wp#!zf&}GPiy06'7'G%3:6]l;].V|<[KIsmlGZCcgm9Enx664fi1psHbJWBM1FZK"
 import requests
 import json
 
+from .utils import extract_digits
+
 column = "column"
 class SearchEngine:
     def __init__(self, size, position):
@@ -25,7 +27,6 @@ class SearchEngine:
 
 
     def fetch_by_regex(self, regex):
-        print(regex)
         df = self.df[self.df.astype(str).str.contains(regex, regex= True, na=False)]
         return df
     
@@ -85,6 +86,10 @@ class SearchEngine:
     def filter_by_no_filtering(self):
         return self.df
 
+    def filter_by_first_and_last_digits(self):
+        self.df = self.df.apply(extract_digits)
+        return self.df
+
     def filter_by_method(self, filter_method , value, minimum=None, maximum=None):
         print(minimum, maximum)
         if filter_method == 'regex':
@@ -105,6 +110,9 @@ class SearchEngine:
             return self.filter_by_between(int(minimum), int(maximum))
         elif filter_method == 'not_in_between':
             return self.filter_by_not_between(int(minimum), int(maximum))
+
+        elif filter_method == "first_and_last_digits":
+            return self.filter_by_first_and_last_digits()
 
         elif filter_method == 'odd':
             return self.filter_by_odd()
