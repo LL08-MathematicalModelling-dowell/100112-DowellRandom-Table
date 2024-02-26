@@ -5,3 +5,6 @@ class RandomTableError(Exception):
 
 class DatabaseFetchError(RandomTableError):
     pass 
+
+class RandomTableTypeError(RandomTableError):
+    pass

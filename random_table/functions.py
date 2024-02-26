@@ -6,8 +6,8 @@ API_KEY = "3279e0a5-3e2f-4d76-a1e9-f30064ea2adf"
 import requests
 import json
 
-from .utils import extract_digits
-from .exceptions import DatabaseFetchError
+from .utils import extract_digits , check_value_integer_string
+from .exceptions import DatabaseFetchError , RandomTableTypeError
 
 column = "column"
 class SearchEngine:
@@ -27,17 +27,29 @@ class SearchEngine:
                 continue
             dfs = dfs + data
         self.df = pd.Series(dfs[:size])
-
+        
+        
     def filter_by_regex(self, regex):
+        
+        
         df = self.df[self.df.astype(str).str.contains(regex, regex= True, na=False)]
         return df
     
     def filter_by_contains(self, value):
+        if not check_value_integer_string(value):
+            raise RandomTableTypeError("Value sent should of an integer type")
+        value = str(value)
+        
         df =  self.df[self.df.astype(str).str.contains(value, regex= False, na=False)]
+        
         return df
     
     def filter_by_not_contains(self, value):
-        df = self.df[~(self.df.astype(str).str.contains(value, regex= False, na=False))]
+        if not check_value_integer_string(value):
+            raise RandomTableTypeError("Value sent should be an integer type")
+        value = str(value)
+        
+        df = self.df[~(self.df.astype(str).str.contains(str(value), regex= False, na=False))]
         return df
     
     def filter_by_exact(self, value):
@@ -45,10 +57,16 @@ class SearchEngine:
        return df
     
     def filter_by_starts_with(self, value):
+        if not check_value_integer_string(value):
+            raise RandomTableTypeError("Value sent should be an integer type")
+        value = str(value)
         df = self.df[self.df.astype(str).str.startswith(value, na=False)]
         return df
     
     def filter_by_ends_with(self, value):
+        if not check_value_integer_string(value):
+            raise RandomTableTypeError("Value sent should be an integer type")
+        value = str(value)
         df = self.df[self.df.astype(str).str.endswith(value, na=False)]
         return df
     
