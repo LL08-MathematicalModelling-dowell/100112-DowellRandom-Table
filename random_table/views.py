@@ -29,32 +29,23 @@ class ClientAdd(APIView):
             return Response({'error': str(e)}, status=500)
 '''
 
-class ClientSearch(APIView):
-    """
-    API View that responds to the client search requests
-    """
 
-    def get(self, request):
-        serializer = randomTableSerializers(data=request.GET)
 
-        if not serializer.is_valid():
-            return JsonResponse({'error': serializer.errors}, status=400)
-        
-        api_key = serializer.validated_data.get("api_key")
-        filter_method = serializer.validated_data.get('filter_method')
-        value = serializer.validated_data.get('value')
-        mini = serializer.validated_data.get('mini')
-        maxi = serializer.validated_data.get('maxi')
-        position = serializer.validated_data.get('position')
-        size = serializer.validated_data.get('size')
-        number_of_fields = serializer.validated_data.get('set_size')
-
-        # Pagination link used for the 
-        next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/api/?set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
-
+def get_random_table_result(data , **kwargs):
         try:
+            size = data.get("size")
+            position = data.get("position")
+            api_key = data.get("position")
             se = SearchEngine(size, position , 
-                              api_key = api_key)
+                              api_key = api_key , **kwargs)
+            value = data.get("value")
+            mini = data.get("mini")
+            maxi = data.get("maxi")
+            number_of_fields = data.get("set_size")
+            filter_method = data.get("filter_method")
+            
+            next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/api/?set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
+            
             rf = se.filter_by_method(filter_method, value, mini, maxi)
         except RandomTableError as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -70,5 +61,43 @@ class ClientSearch(APIView):
         # reshaped = rf.values.resize((int(rf.shape[0]/number_of_fields), number_of_fields), refcheck=False)
 
         return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
+        
+        
+
+class ClientSearch(APIView):
+    """
+    API View that responds to the client search requests
+    """
+        
+
+    def get(self, request):
+        serializer = randomTableSerializers(data=request.GET)
+
+        if not serializer.is_valid():
+            return JsonResponse({'error': serializer.errors}, status=400)
+        
+
+        # Pagination link used for the 
+        
+        
+        response = get_random_table_result(serializer.validated_data)
+        
+        return response
+            
+            
+            
+class ClientSearchwithDowellService(APIView):
+    
+    def get(self , request):
+        serializer = randomTableSerializers(data=request.GET)
+
+        if not serializer.is_valid():
+            return JsonResponse({'error': serializer.errors}, status=400)
+        
+        response = get_random_table_result(serializer.validated_data , **{"payment" : True})
+        
+        return response
+        
+        
 #        except Exception as e:
 #            return JsonResponse({'error': str(e)}, status=500)

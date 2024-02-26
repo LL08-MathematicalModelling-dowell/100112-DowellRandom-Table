@@ -1,20 +1,20 @@
 import pandas as pd
 import math  
-
-DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
-API_KEY = "3279e0a5-3e2f-4d76-a1e9-f30064ea2adf"
 import requests
 import json
 
+
 from .utils import extract_digits , check_value_integer_string
-from .exceptions import DatabaseFetchError , RandomTableTypeError
+from .exceptions import DatabaseFetchError , RandomTableTypeError , RandomTableError
+
+
 
 column = "column"
 class SearchEngine:
     """
     A class that
     """
-    def __init__(self, size, position , api_key= None):
+    def __init__(self, size, position , api_key= None , **kwargs):
         self.df = None
         required_collection = math.ceil(size/10000)
         if not position:
@@ -22,7 +22,7 @@ class SearchEngine:
 
         dfs = []
         for i in range(position, position+required_collection):
-            data = fetch('collection_'+str(i) , api_key , limit = size)
+            data = fetch('collection_'+str(i) , api_key , limit = size , **kwargs)
             if not data:
                 continue
             dfs = dfs + data
@@ -147,7 +147,12 @@ class SearchEngine:
 
 
 def fetch(coll , api_key  ,  **kwargs):
+    DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
     limit = kwargs.get("limit" , 100)
+    payment = kwargs.get("payment" , None)
+    
+    print("payment" , payment , limit)
+    
     data = {
         "api_key": api_key,
         "operation":"fetch",
@@ -156,7 +161,7 @@ def fetch(coll , api_key  ,  **kwargs):
         "filters": {},
         "limit" : limit,
         "offset" : 0,
-        "payment" : False
+        "payment" : True if payment else False
     }
 
     response = requests.get(DB_URL, data=data)
