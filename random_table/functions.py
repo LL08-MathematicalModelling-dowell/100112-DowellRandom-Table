@@ -151,8 +151,6 @@ def fetch(coll , api_key  ,  **kwargs):
     limit = kwargs.get("limit" , 100)
     payment = kwargs.get("payment" , None)
     
-    print("payment" , payment , limit)
-    
     data = {
         "api_key": api_key,
         "operation":"fetch",
@@ -168,6 +166,7 @@ def fetch(coll , api_key  ,  **kwargs):
     
     if response.status_code != 200:
         if "application/json" in response.headers.get("Content-Type", ""):
+            print(response.json())
             raise DatabaseFetchError(response.json().get("message" , "Issue with the database fetch"))
         raise DatabaseFetchError("Issue with the Database Fetch")
     try:

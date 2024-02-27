@@ -35,7 +35,7 @@ def get_random_table_result(data , **kwargs):
         try:
             size = data.get("size")
             position = data.get("position")
-            api_key = data.get("position")
+            api_key = data.get("api_key")
             se = SearchEngine(size, position , 
                               api_key = api_key , **kwargs)
             value = data.get("value")
@@ -68,16 +68,12 @@ class ClientSearch(APIView):
     """
     API View that responds to the client search requests
     """
-        
-
+    
     def get(self, request):
         serializer = randomTableSerializers(data=request.GET)
 
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)
-        
-
-        # Pagination link used for the 
         
         
         response = get_random_table_result(serializer.validated_data)
@@ -89,7 +85,7 @@ class ClientSearch(APIView):
 class ClientSearchwithDowellService(APIView):
     
     def get(self , request):
-        serializer = randomTableSerializers(data=request.GET)
+        serializer = randomTableSerializers(data=request.GET , **{"payment" : True})
 
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)

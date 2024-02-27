@@ -190,6 +190,10 @@ LOGGING = {
     }
 }
 
+LIVE_URL = "https://uxlivinglab200112.pythonanywhere.com/api"
+
+TEST_USE_LIVE_URL = False
+
 DATACUBE_API_KEY = "3279e0a5-3e2f-4d76-a1e9-f30064ea2adf"
 
 USE_CLIENT_API_KEY = True
