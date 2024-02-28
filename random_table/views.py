@@ -11,6 +11,7 @@ import math
 
 from .serializers  import randomTableSerializers
 from .exceptions import RandomTableError
+from .authentication import processApikey
 
 '''
 spark = SparkSes("CLIENT/static/data_filter.json")
@@ -86,9 +87,17 @@ class ClientSearchwithDowellService(APIView):
     
     def get(self , request):
         serializer = randomTableSerializers(data=request.GET , **{"payment" : True})
+                
 
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)
+        
+        auth_response = processApikey(serializer.validated_data.get("api_key"))
+        if auth_response["success"]:
+            if (auth_response["total_credits"] < 0):
+                return JsonResponse({"error" : "You don't have enough credit"})
+        else:
+            return JsonResponse({"error" : auth_response })
         
         response = get_random_table_result(serializer.validated_data , **{"payment" : True})
         

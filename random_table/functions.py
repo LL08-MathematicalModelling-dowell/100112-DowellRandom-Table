@@ -149,7 +149,6 @@ class SearchEngine:
 def fetch(coll , api_key  ,  **kwargs):
     DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
     limit = kwargs.get("limit" , 100)
-    payment = kwargs.get("payment" , None)
     
     data = {
         "api_key": api_key,
@@ -159,7 +158,7 @@ def fetch(coll , api_key  ,  **kwargs):
         "filters": {},
         "limit" : limit,
         "offset" : 0,
-        "payment" : True if payment else False
+        "payment" : False
     }
 
     response = requests.get(DB_URL, data=data)
