@@ -4,13 +4,15 @@ import { TextField, Select, MenuItem, Button, Box } from "@mui/material";
 import { useGetClient } from "./getClient";
 import { Status } from "./status";
 
-const filterValuesParams = (searchValues) => {
-  const urlPart = searchValues.map((value) => {
-    return `&${value.label}=${value.value}`;
-  });
+// const filterValuesParams = (searchValues) => {
+//   const urlPart = searchValues.map((value) => {
+//     return `&${value.label}=${value.value}`;
+//   });
+//   console.log(urlPart.join(""))
 
-  return urlPart.join("");
-};
+//   return urlPart.join("");
+// };
+
 
 const Search = () => {
   const [searchValues, setSearchValues] = useState(
@@ -20,6 +22,9 @@ const Search = () => {
   );
 
   const [size, setSize] = useState("");
+  const [position, setPosition] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [valueCount, setValueCount] = useState("");
   const [randomTableSize, setRandomTableSize] = useState("");
   const [nextLink, setNextLink] = useState();
 
@@ -30,7 +35,7 @@ const Search = () => {
   const { status, responseData, reload } = useGetClient(
     `http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${
       selectedFilterMethod.method
-    }${filterValuesParams(searchValues)}`
+    }&value=${valueCount}&api_key=${apiKey}&position=${position}`
   );
 
   const {
@@ -75,6 +80,13 @@ const Search = () => {
         }}
       >
         <TextField
+          label="api_key"
+          type="text"
+          variant="outlined"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+        />
+        <TextField
           label="random set size"
           type="number"
           variant="outlined"
@@ -89,6 +101,14 @@ const Search = () => {
           variant="outlined"
           value={size}
           onChange={(e) => setSize(e.target.value)}
+        />
+        <TextField
+          id="size-input"
+          label="Position of the page"
+          type="number"
+          variant="outlined"
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
         />
 
         <Select
@@ -111,23 +131,17 @@ const Search = () => {
           ))}
         </Select>
 
-        {searchValues.map((value, index) => {
-          return (
-            <TextField
-              placeholder={value.label}
-              key={index}
-              value={value.value}
-              onChange={(e) => {
-                const tempSearchValues = [...searchValues];
-                tempSearchValues[index] = {
-                  label: value.label,
-                  value: e.target.value,
-                };
-                setSearchValues(tempSearchValues);
-              }}
-            />
-          );
-        })}
+        {
+          selectedFilterMethod !==  FilteringMethods[0] && <TextField
+          label="value"
+          type="number"
+          variant="outlined"
+          value={valueCount}
+          onChange={(e) => setValueCount(e.target.value)}
+        />
+        }
+
+       
       </Box>
       {responseData === undefined || (
         <Button
