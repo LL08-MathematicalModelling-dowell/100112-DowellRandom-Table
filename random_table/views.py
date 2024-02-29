@@ -35,13 +35,14 @@ def get_random_table_result(data ,  url, **kwargs):
             size = data.get("size")
             position = data.get("position")
             api_key = data.get("api_key")
-            se = SearchEngine(size, position , 
-                              api_key = api_key , **kwargs)
             value = data.get("value")
             mini = data.get("mini")
             maxi = data.get("maxi")
             number_of_fields = data.get("set_size")
             filter_method = data.get("filter_method")
+            
+            se = SearchEngine(size, position , 
+                              api_key = api_key , **kwargs)
             
             next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
             
@@ -56,8 +57,9 @@ def get_random_table_result(data ,  url, **kwargs):
                 if len(arr)==number_of_fields:
                         result.append(arr)
                         arr = []
-
-        # reshaped = rf.values.resize((int(rf.shape[0]/number_of_fields), number_of_fields), refcheck=False)
+                        
+        if not result:
+            return JsonResponse({"error" : f"The set_size value might to too high. See it to {len(rf)} or lower"} , status = 400)
 
         return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
         
@@ -90,12 +92,16 @@ class ClientSearchwithDowellService(APIView):
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)
         
+        """
+        
         auth_response = processApikey(serializer.validated_data.get("api_key"))
         if auth_response["success"]:
             if (auth_response["total_credits"] < 0):
                 return JsonResponse({"error" : "You don't have enough credit"})
         else:
             return JsonResponse({"error" : auth_response })
+            
+        """
         
         response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/service" ,  **{"payment" : True})
         

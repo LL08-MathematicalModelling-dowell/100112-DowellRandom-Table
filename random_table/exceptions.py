@@ -8,3 +8,6 @@ class DatabaseFetchError(RandomTableError):
 
 class RandomTableTypeError(RandomTableError):
     pass
+
+class RandomTableFilteringError(RandomTableError):
+    pass
