@@ -30,9 +30,7 @@ class ClientAdd(APIView):
             return Response({'error': str(e)}, status=500)
 '''
 
-
-
-def get_random_table_result(data , **kwargs):
+def get_random_table_result(data ,  url, **kwargs):
         try:
             size = data.get("size")
             position = data.get("position")
@@ -45,7 +43,7 @@ def get_random_table_result(data , **kwargs):
             number_of_fields = data.get("set_size")
             filter_method = data.get("filter_method")
             
-            next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/api/?set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
+            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
             
             rf = se.filter_by_method(filter_method, value, mini, maxi)
         except RandomTableError as e:
@@ -77,7 +75,7 @@ class ClientSearch(APIView):
             return JsonResponse({'error': serializer.errors}, status=400)
         
         
-        response = get_random_table_result(serializer.validated_data)
+        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/")
         
         return response
             
@@ -99,10 +97,7 @@ class ClientSearchwithDowellService(APIView):
         else:
             return JsonResponse({"error" : auth_response })
         
-        response = get_random_table_result(serializer.validated_data , **{"payment" : True})
+        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/service" ,  **{"payment" : True})
         
         return response
         
-        
-#        except Exception as e:
-#            return JsonResponse({'error': str(e)}, status=500)
