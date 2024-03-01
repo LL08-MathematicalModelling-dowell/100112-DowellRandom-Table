@@ -44,7 +44,7 @@ def get_random_table_result(data ,  url, **kwargs):
             se = SearchEngine(size, position , 
                               api_key = api_key , **kwargs)
             
-            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
+            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
             
             rf = se.filter_by_method(filter_method, value, mini, maxi)
         except RandomTableError as e:
@@ -77,7 +77,7 @@ class ClientSearch(APIView):
             return JsonResponse({'error': serializer.errors}, status=400)
         
         
-        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/")
+        response = get_random_table_result(serializer.validated_data , "https://uxlivinglab200112.pythonanywhere.com/api/")
         
         return response
             
@@ -92,18 +92,15 @@ class ClientSearchwithDowellService(APIView):
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)
         
-        """
-        
         auth_response = processApikey(serializer.validated_data.get("api_key"))
         if auth_response["success"]:
             if (auth_response["total_credits"] < 0):
                 return JsonResponse({"error" : "You don't have enough credit"})
         else:
             return JsonResponse({"error" : auth_response })
-            
-        """
         
-        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/service" ,  **{"payment" : True})
+        
+        response = get_random_table_result(serializer.validated_data , "https://uxlivinglab200112.pythonanywhere.com/api/service/" ,  **{"payment" : True})
         
         return response
         
