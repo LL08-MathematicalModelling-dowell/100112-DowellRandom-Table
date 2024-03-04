@@ -11,6 +11,7 @@ import math
 
 from .serializers  import randomTableSerializers
 from .exceptions import RandomTableError
+from .authentication import processApikey
 
 '''
 spark = SparkSes("CLIENT/static/data_filter.json")
@@ -29,22 +30,21 @@ class ClientAdd(APIView):
             return Response({'error': str(e)}, status=500)
 '''
 
-
-
-def get_random_table_result(data , **kwargs):
+def get_random_table_result(data ,  url, **kwargs):
         try:
             size = data.get("size")
             position = data.get("position")
             api_key = data.get("api_key")
-            se = SearchEngine(size, position , 
-                              api_key = api_key , **kwargs)
             value = data.get("value")
             mini = data.get("mini")
             maxi = data.get("maxi")
             number_of_fields = data.get("set_size")
             filter_method = data.get("filter_method")
             
-            next_data_link = f"http://uxlivinglab200112.pythonanywhere.com/api/?set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
+            se = SearchEngine(size, position , 
+                              api_key = api_key , **kwargs)
+            
+            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&minimum={mini}&maxi={maxi}"
             
             rf = se.filter_by_method(filter_method, value, mini, maxi)
         except RandomTableError as e:
@@ -57,8 +57,9 @@ def get_random_table_result(data , **kwargs):
                 if len(arr)==number_of_fields:
                         result.append(arr)
                         arr = []
-
-        # reshaped = rf.values.resize((int(rf.shape[0]/number_of_fields), number_of_fields), refcheck=False)
+                        
+        if not result:
+            return JsonResponse({"error" : f"The set_size value might to too high. See it to {len(rf)} or lower"} , status = 400)
 
         return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
         
@@ -76,7 +77,7 @@ class ClientSearch(APIView):
             return JsonResponse({'error': serializer.errors}, status=400)
         
         
-        response = get_random_table_result(serializer.validated_data)
+        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/")
         
         return response
             
@@ -86,14 +87,23 @@ class ClientSearchwithDowellService(APIView):
     
     def get(self , request):
         serializer = randomTableSerializers(data=request.GET , **{"payment" : True})
+                
 
         if not serializer.is_valid():
             return JsonResponse({'error': serializer.errors}, status=400)
         
-        response = get_random_table_result(serializer.validated_data , **{"payment" : True})
+        """
+        
+        auth_response = processApikey(serializer.validated_data.get("api_key"))
+        if auth_response["success"]:
+            if (auth_response["total_credits"] < 0):
+                return JsonResponse({"error" : "You don't have enough credit"})
+        else:
+            return JsonResponse({"error" : auth_response })
+            
+        """
+        
+        response = get_random_table_result(serializer.validated_data , "http://uxlivinglab200112.pythonanywhere.com/api/service" ,  **{"payment" : True})
         
         return response
         
-        
-#        except Exception as e:
-#            return JsonResponse({'error': str(e)}, status=500)
