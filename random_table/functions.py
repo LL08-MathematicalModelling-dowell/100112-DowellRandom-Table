@@ -157,8 +157,12 @@ class SearchEngine:
         return self.df
 
     def filter_by_first_and_last_digits(self):
-        self.df = self.df.apply(extract_digits)
-        return self.df
+        df = self.df.apply(extract_digits)
+        return df
+    
+    def filter_by_one_digits(self):
+        df = self.df.apply(lambda x: [int(i) for i in str(x)])
+        return df
 
     def filter_by_method(self, filter_method , value, minimum=None, maximum=None):
         if filter_method == 'regex':
@@ -191,6 +195,8 @@ class SearchEngine:
             return self.filter_by_multiple_of(value)
         elif filter_method == 'no_filtering':
             return self.filter_by_no_filtering()
+        elif filter_method == "one_digits":
+            return self.filter_by_one_digits()
 
 
 
