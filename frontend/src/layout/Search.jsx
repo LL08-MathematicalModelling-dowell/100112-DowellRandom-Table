@@ -29,9 +29,28 @@ const Search = () => {
     if (secondResponse.status !== 200) {
       clearFields();
       setSubmitting(false);
-      alert(`${secondResponse.error}`);
+      
+      let errorMessage = "";
+    
+      if (secondResponse.error) {
+        // Check if secondResponse.error is an object
+        if (typeof secondResponse.error === "object") {
+          // Iterate over the keys and values of the error object
+          Object.entries(secondResponse.error).forEach(([key, value]) => {
+            // Concatenate each key and its corresponding error messages
+            errorMessage += `\n${key}: ${value.join(", ")}`;
+          });
+        } else {
+          // If secondResponse.error is not an object, use it directly
+          errorMessage = secondResponse.error;
+        }
+      }
+    
+      // Show the error message in the alert
+      alert(errorMessage);
       return;
     }
+    
     setDataCsv(secondResponse.data);
     downloadCsvfile(secondResponse.data);
     setNextLink(secondResponse.next_data_link);
@@ -205,13 +224,13 @@ const FilteringMethods = [
 
   {
     label: "In between",
-    method: "in_between",
+    method: "between",
     inputs: ["minimum", "maximum"],
   },
 
   {
     label: "Not in between",
-    method: "not_in_between",
+    method: "not_between",
     inputs: ["minimum", "maximum"],
   },
   {
