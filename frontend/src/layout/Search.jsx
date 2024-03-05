@@ -1,72 +1,95 @@
 import React, { useEffect, useState } from "react";
 import { TextField, Select, MenuItem, Button, Box } from "@mui/material";
-
-import { useGetClient } from "./getClient";
 import { Status } from "./status";
-
-// const filterValuesParams = (searchValues) => {
-//   const urlPart = searchValues.map((value) => {
-//     return `&${value.label}=${value.value}`;
-//   });
-//   console.log(urlPart.join(""))
-
-//   return urlPart.join("");
-// };
-
+import CsvTable from "./csvTable";
 
 const Search = () => {
-  const [searchValues, setSearchValues] = useState(
-    FilteringMethods[0].inputs.map((v) => {
-      return { label: v, value: "" };
-    })
-  );
-
+  const [apiKey, setApiKey] = useState("");
+  const [randomTableSize, setRandomTableSize] = useState("");
   const [size, setSize] = useState("");
   const [position, setPosition] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [valueCount, setValueCount] = useState("");
-  const [randomTableSize, setRandomTableSize] = useState("");
-  const [nextLink, setNextLink] = useState();
+  const [selectedFilterMethod, setSelectedFilterMethod] = useState(FilteringMethods[0]);
+  const [submitting, setSubmitting] = useState(false);
+  const [nextLink, setNextLink] = useState(null);
+  const [dataCsv, setDataCsv] = useState(null);
 
-  const [selectedFilterMethod, setSelectedFilterMethod] = useState(
-    FilteringMethods[0]
-  );
+  const isSubmitDisabled = !apiKey || !randomTableSize || !size || !position || !valueCount || submitting;
 
-  const { status, responseData, reload } = useGetClient(
-    `http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${
-      selectedFilterMethod.method
-    }&value=${valueCount}&api_key=${apiKey}&position=${position}`
-  );
-
-  const {
-    status: nextStatus,
-    responseData: nextResponseData,
-    reload: reloadNextData,
-  } = useGetClient(nextLink);
-
-  const submitRandomTableRequest = () => {
-    reload();
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    const firstResponse = await callFirstEndpoint();
+    if (firstResponse.status !== 200) {
+      clearFields();
+      setSubmitting(false);
+      alert(`${firstResponse.message}`);
+      return;
+    }
+    const secondResponse = await callSecondEndpoint();
+    if (secondResponse.status !== 200) {
+      clearFields();
+      setSubmitting(false);
+      
+      let errorMessage = "";
+    
+      if (secondResponse.error) {
+        // Check if secondResponse.error is an object
+        if (typeof secondResponse.error === "object") {
+          // Iterate over the keys and values of the error object
+          Object.entries(secondResponse.error).forEach(([key, value]) => {
+            // Concatenate each key and its corresponding error messages
+            errorMessage += `\n${key}: ${value.join(", ")}`;
+          });
+        } else {
+          // If secondResponse.error is not an object, use it directly
+          errorMessage = secondResponse.error;
+        }
+      }
+    
+      // Show the error message in the alert
+      alert(errorMessage);
+      return;
+    }
+    
+    setDataCsv(secondResponse.data);
+    downloadCsvfile(secondResponse.data);
+    setNextLink(secondResponse.next_data_link);
+    setSubmitting(false);
   };
 
-  useEffect(() => {
-    if (status == Status.Success && responseData !== undefined) {
-      downloadCsvfile(responseData["data"]);
-      setNextLink(responseData["next_data_link"]);
-      return;
-    }
-    status === Status.Error && alert("something went wrong! please try again");
-  }, [status, responseData]);
+  const callSecondEndpoint = async () => {
+    const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
+    return response.json();
+  };
 
-  useEffect(() => {
-    if (nextStatus == Status.Success && nextResponseData !== undefined) {
-      downloadCsvfile(nextResponseData["data"]);
-      setNextLink(nextResponseData["next_data_link"]);
-      return;
-    }
+  const callFirstEndpoint= async () => {
+    const url = `https://100105.pythonanywhere.com/api/v3/process-services/?type=api_service&api_key=${apiKey}`;
+    const payload = {
+        service_id: "DOWELL10048"
+    };
 
-    nextStatus === Status.Error &&
-      alert("something went wrong! please try again");
-  }, [nextStatus, nextResponseData]);
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Error:", error);
+        throw error;
+    }
+  };
+
+  const clearFields = () => {
+    setApiKey("");
+    setRandomTableSize("");
+    setSize("");
+    setPosition("");
+    setValueCount("");
+  };
 
   return (
     <>
@@ -119,8 +142,6 @@ const Search = () => {
             const sv = e.target.value.inputs.map((v) => {
               return { label: v, value: "" };
             });
-
-            setSearchValues(sv);
           }}
           renderValue={(val) => val.label}
         >
@@ -143,23 +164,26 @@ const Search = () => {
 
        
       </Box>
-      {responseData === undefined || (
+      {nextLink && (
         <Button
           onClick={reloadNextData}
           variant="contained"
-          disabled={nextStatus === Status.Pending}
         >
-          {nextStatus === Status.Pending ? "loading..." : "Next Data"}
+          Next Data
         </Button>
       )}
 
       <Button
+        onClick={handleSubmit}
         variant="contained"
-        onClick={submitRandomTableRequest}
-        disabled={status === Status.Pending}
+        disabled={isSubmitDisabled}
       >
-        {status === Status.Pending ? "loading..." : "Submit"}
+        {submitting ? "Loading..." : "Submit"}
       </Button>
+
+      <Box>
+        {dataCsv && <CsvTable data={dataCsv} />}
+      </Box>
     </>
   );
 };
@@ -200,13 +224,13 @@ const FilteringMethods = [
 
   {
     label: "In between",
-    method: "in_between",
+    method: "between",
     inputs: ["minimum", "maximum"],
   },
 
   {
     label: "Not in between",
-    method: "not_in_between",
+    method: "not_between",
     inputs: ["minimum", "maximum"],
   },
   {
