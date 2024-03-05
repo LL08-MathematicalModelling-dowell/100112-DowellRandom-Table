@@ -1,17 +1,18 @@
 import React from "react";
+import "./CsvTable.css"; // Import CSS file for styling
 
 const CsvTable = ({ data }) => {
   return (
-    <div>
-      <table>
-        <thead>
-          <tr>
-            {data.length > 0 &&
-              data[0].map((header, index) => (
-                <th key={index}>{header}</th>
-              ))}
-          </tr>
-        </thead>
+    <div className="csv-table-container">
+      <table className="csv-table">
+      <thead>
+        <tr>
+          {data.length > 0 &&
+            data[0].map((header, index) => (
+              <th key={index}>Field {index + 1}</th>
+            ))}
+        </tr>
+      </thead>
         <tbody>
           {data.map((row, rowIndex) => (
             <tr key={rowIndex}>
