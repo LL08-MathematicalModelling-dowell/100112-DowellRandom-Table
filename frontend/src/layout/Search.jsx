@@ -19,14 +19,15 @@ const Search = () => {
   const handleSubmit = async () => {
     setSubmitting(true);
     const firstResponse = await callFirstEndpoint();
-    if (firstResponse.status !== 200) {
+    if (firstResponse.success == false) {
       clearFields();
       setSubmitting(false);
       alert(`${firstResponse.message}`);
       return;
     }
     const secondResponse = await callSecondEndpoint();
-    if (secondResponse.status !== 200) {
+   
+    if (!secondResponse.data) {
       clearFields();
       setSubmitting(false);
       
@@ -53,7 +54,9 @@ const Search = () => {
     
     setDataCsv(secondResponse.data);
     downloadCsvfile(secondResponse.data);
-    setNextLink(secondResponse.next_data_link);
+    if (secondResponse.next_data_link) {
+      setNextLink(secondResponse.next_data_link);
+    }
     setSubmitting(false);
   };
 
@@ -82,6 +85,16 @@ const Search = () => {
         throw error;
     }
   };
+
+  const reloadNextData = async () => {
+    const response = await fetch(nextLink);
+    const data = await response.json();
+    setDataCsv(data.data);
+    downloadCsvfile(data.data);
+    if (!data.next_data_link) {
+      setNextLink(data.next_data_link);
+    }
+  }
 
   const clearFields = () => {
     setApiKey("");
