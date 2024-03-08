@@ -2,11 +2,12 @@ import pandas as pd
 import math  
 import requests
 import json
-
+import concurrent.futures 
+import time
+import os
 
 from .utils import extract_digits , check_value_integer_string
 from .exceptions import DatabaseFetchError , RandomTableTypeError ,RandomTableFilteringError
-
 
 
 column = "column"
@@ -29,33 +30,19 @@ class SearchEngine:
     
     
     
-    def __init__(self, size, position , set_size ,   filter_method , api_key= None , **kwargs):
+    def __init__(self, size, position , set_size ,   filter_method , api_key= None  , pagination = True, **kwargs):
         self.df = None
-        required_collection = math.ceil(size/10000)
         if not position:
             position = 1
 
-
-        self.total_filtered_data = pd.Series([])
-        for i in range(1, 10):
-                dfs = fetch('collection_'+str(i) , position , api_key , limit = size , **kwargs)
-                if not dfs:
-                    continue
-                
-                self.df = pd.Series(dfs)
-                
-                import time
-                
-                start = time.time()
-
-                filtered_data = self.filter_by_method(filter_method , **kwargs)
-                
-                self.total_filtered_data = pd.concat([self.total_filtered_data , filtered_data])
-                
-                if self.total_filtered_data.any():
-                    
-                    if len(self.total_filtered_data) >= size * set_size:
-                        break
+        
+        if not pagination:
+            self.total_filtered_data = self._processor_without_pagination(size , position , set_size , 
+                                                                          filter_method , api_key = api_key, **kwargs)
+        else:
+            self.total_filtered_data = self._processor_with_pagination(size , position , filter_method , api_key,
+                                                                       **kwargs)
+            
         
         if self.total_filtered_data.empty:
             if filter_method.endswith("betweens"):
@@ -63,6 +50,88 @@ class SearchEngine:
             else:
                 self.handle_filtering_error(self.error_messages[filter_method](kwargs.get("value")))
         self.total_filtered_data = self.total_filtered_data[:size * set_size]
+            
+            
+    def _processor_with_pagination(self , size , position , filter_method ,  api_key , **kwargs):
+        df = None
+        required_collection = math.ceil(size/10000)
+        if not position:
+            position = 1
+
+        dfs = []
+        for i in range(position, position+required_collection):
+            data = fetch_data('collection_'+str(i) , api_key , limit = size , **kwargs)
+            if not data:
+                continue
+            dfs = dfs + data
+            
+        if not dfs:
+            raise DatabaseFetchError("No datafound while for this size")
+        self.df = pd.Series(dfs[:size])
+        
+        return self.filter_by_method(filter_method , **kwargs)
+        
+    
+        
+        
+        
+        
+        
+    def _processor_without_pagination(self, size , position , set_size , filter_method , api_key = None, **kwargs):
+        
+        total_filtered_data = pd.Series([])
+                
+        if size <= 500:
+            number_of_threads = 2
+            
+        elif size > 500 and size < 10000:
+            number_of_threads = 5 * math.ceil(size/500)
+            
+        elif size >= 10000 and size < 100000:
+            
+            number_of_threads = 20 * math.ceil(size/10000)
+            
+        else:
+            number_of_threads = 50 * math.ceil(size/100000)
+            
+        
+        for i in range(1, 1000 , number_of_threads):
+            
+            dfs_ = []
+            
+            start = time.time()
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_threads) as executor:
+                futures = [executor.submit(fetch , 'collection_'+str(i) , api_key , limit = size , **kwargs)\
+                                    for i in range(i ,  i + number_of_threads)]
+                
+            
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        dfs = future.result()
+                        print("lenght of data" , len(dfs))
+                        dfs_.extend(dfs)
+                        
+                    except Exception as e:
+                        pass
+                        
+
+            if not dfs_:
+                continue
+           
+            self.df = pd.Series(dfs_)
+
+            filtered_data = self.filter_by_method(filter_method , **kwargs)
+            total_filtered_data = pd.concat([total_filtered_data , filtered_data])
+            
+                
+            if total_filtered_data.any():
+
+                if len(total_filtered_data) >= size * set_size:
+                    break
+        
+        
+        return total_filtered_data
         
     def handle_filtering_error(self ,  message , df=None):
         if isinstance(df , pd.Series) and df.empty:
@@ -219,12 +288,13 @@ class SearchEngine:
             return self.filter_by_no_filtering()
         elif filter_method == "one_digits":
             return self.filter_by_one_digits()
-
-
-
-def fetch(coll , offset ,  api_key  ,   **kwargs):
+        
+        else:
+            return self.filter_by_no_filtering()
+        
+        
+def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
     DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
-    limit = kwargs.get("limit" , 100)
     
     data = {
         "api_key": api_key,
@@ -232,29 +302,77 @@ def fetch(coll , offset ,  api_key  ,   **kwargs):
         "db_name": "random_table",
         "coll_name": coll,
         "filters": {},
-        "limit" : 10000,
-        "offset" : 0,
+        "limit" : limit,
+        "offset" : offset,
         "payment" : False
     }
-
     response = requests.get(DB_URL, data=data)
-    
+        
     if response.status_code != 200:
-        if "application/json" in response.headers.get("Content-Type", ""):
-            raise DatabaseFetchError(response.json().get("message" , "Issue with the database fetch"))
-        raise DatabaseFetchError("Issue with the Database Fetch")
+            if "application/json" in response.headers.get("Content-Type", ""):
+                raise DatabaseFetchError(response.json().get("message" , "Issue with the database fetch"))
+            raise DatabaseFetchError("Issue with the Database Fetch")
     try:
-        response_data = json.loads(response.text)
+            response_data = json.loads(response.text)
     except Exception as e:
-        return []
+            return []
     result = []
+    
+    start = time.time()
+    
 
     for rd in response_data['data']:
-        for key in rd:
-            if key == "_id" or key== "index":
-                continue 
-            result.append(rd[key])
+            for key in rd:
+                if key == "_id" or key== "index":
+                    continue 
+                result.append(rd[key])
+                
+                
+    print("Time it takes to unpack" , time.time() - start)
             
     return result
+    
+
+
+
+def fetch(coll , api_key  , limit = 1000 , **kwargs):
+    
+    number_of_rounds = round(1000/limit)
+
+    if limit > 500:
+        return fetch_data(coll , api_key , limit = limit , **kwargs)
+    
+    else:
+        
+        
+        
+        
+        if number_of_rounds >= 10:
+            number_of_rounds = 2
+
+        total_results = []
+        
+        
+        
+        start = time.time()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_rounds) as executor:
+            futures = [executor.submit(fetch_data , coll , api_key , offset = i , limit = limit) \
+                                       for i in range(0 , limit * number_of_rounds , limit)]
+            
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    result = future.result()
+                    total_results.extend(result)
+                except Exception as e:
+                    pass
+                    
+       
+                    
+        return total_results
+            
+            
+            
+    
+        
 
 
