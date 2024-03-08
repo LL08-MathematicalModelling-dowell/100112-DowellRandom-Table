@@ -41,12 +41,19 @@ def get_random_table_result(data ,  url, **kwargs):
             number_of_fields = data.get("set_size")
             filter_method = data.get("filter_method")
             
-            se = SearchEngine(size, position , 
-                              api_key = api_key , **kwargs)
+            extra_kwargs = {
+                **kwargs,
+                "value" : value,
+                "minimum" : mini,
+                "maximum" : maxi
+            }
             
-            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
+            se = SearchEngine(size, position, number_of_fields ,  filter_method,
+                              api_key = api_key , **extra_kwargs)
             
-            rf = se.filter_by_method(filter_method, value, mini, maxi)
+            #next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
+            
+            rf = se.total_filtered_data
         except RandomTableError as e:
             return JsonResponse({'error': str(e)}, status=400)
         
@@ -61,7 +68,7 @@ def get_random_table_result(data ,  url, **kwargs):
         if not result:
             return JsonResponse({"error" : f"The set_size value might to too high. See it to {len(rf)} or lower"} , status = 400)
 
-        return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
+        return JsonResponse({'data': result}, status=200)
         
         
 
