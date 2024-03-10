@@ -30,7 +30,8 @@ class ClientAdd(APIView):
             return Response({'error': str(e)}, status=500)
 '''
 
-def get_random_table_result(data ,  url, **kwargs):
+def get_random_table_result(data , **kwargs):
+        url = kwargs.get("url")
         try:
             size = data.get("size")
             position = data.get("position")
@@ -41,12 +42,20 @@ def get_random_table_result(data ,  url, **kwargs):
             number_of_fields = data.get("set_size")
             filter_method = data.get("filter_method")
             
-            se = SearchEngine(size, position , 
-                              api_key = api_key , **kwargs)
+            extra_kwargs = {
+                **kwargs,
+                "value" : value,
+                "minimum" : mini,
+                "maximum" : maxi
+            }
             
-            next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
+            se = SearchEngine(size, position, number_of_fields ,  filter_method,
+                              api_key = api_key , pagination=False if not url else True ,  **extra_kwargs)
             
-            rf = se.filter_by_method(filter_method, value, mini, maxi)
+            if url:
+                next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
+            
+            rf = se.total_filtered_data
         except RandomTableError as e:
             return JsonResponse({'error': str(e)}, status=400)
         
@@ -61,46 +70,84 @@ def get_random_table_result(data ,  url, **kwargs):
         if not result:
             return JsonResponse({"error" : f"The set_size value might to too high. See it to {len(rf)} or lower"} , status = 400)
 
-        return JsonResponse({'data': result, 'next_data_link':next_data_link}, status=200)
-        
-        
-
-class ClientSearch(APIView):
-    """
-    API View that responds to the client search requests
-    """
+        response = {"data" : result}
+        if url:
+            response["next_data_link"] = next_data_link
+            
+        return JsonResponse(response, status=200)
     
-    def get(self, request):
-        serializer = randomTableSerializers(data=request.GET)
+    
+class ClientSearchBaseAPIView(APIView):
+    
+    custom_kwargs = {}
+    pagination = True
+    end_point = ""
+    
+    def _get_random_table(self , data , **kwargs):
+        return get_random_table_result(data , **kwargs)
+    
+    def get_pagination_link(self):
+        return "https://uxlivinglab200112.pythonanywhere.com/" + self.end_point 
+    
+    
+    def _custom_logic(self , **kwargs):
+        pass
+        
+    
+    def get(self ,request):
+        self.serializer = randomTableSerializers(data=request.GET)
 
-        if not serializer.is_valid():
-            return JsonResponse({'error': serializer.errors}, status=400)
+        if not self.serializer.is_valid():
+            return JsonResponse({'error': self.serializer.errors}, status=400)
         
+        try:
+            self._custom_logic()
+        except RandomTableError as e:
+            return JsonResponse({"error" : str(e)} , status = 400)
         
-        response = get_random_table_result(serializer.validated_data , "https://uxlivinglab200112.pythonanywhere.com/api/")
+        if self.pagination:
+            
+            self.custom_kwargs["url"] = self.get_pagination_link()
+            
+        
+        response = get_random_table_result(self.serializer.validated_data ,  **self.custom_kwargs)
         
         return response
-            
-            
-            
-class ClientSearchwithDowellService(APIView):
-    
-    def get(self , request):
-        serializer = randomTableSerializers(data=request.GET , **{"payment" : True})
-                
-
-        if not serializer.is_valid():
-            return JsonResponse({'error': serializer.errors}, status=400)
         
-        auth_response = processApikey(serializer.validated_data.get("api_key"))
+        
+        
+
+class ClientSearch(ClientSearchBaseAPIView):
+    end_point = "api"
+   
+            
+            
+            
+class ClientSearchwithDowellService(ClientSearchBaseAPIView):
+    
+    end_point = "api/service/"
+    
+    
+    def _custom_logic(self, **kwargs):
+        auth_response = processApikey(self.serializer.validated_data.get("api_key"))
         if auth_response["success"]:
             if (auth_response["total_credits"] < 0):
-                return JsonResponse({"error" : "You don't have enough credit"})
+                raise RandomTableError("You don't have enough credit")
         else:
-            return JsonResponse({"error" : auth_response })
+            raise RandomTableError(f"{auth_response}")
+            
+    
         
-        
-        response = get_random_table_result(serializer.validated_data , "https://uxlivinglab200112.pythonanywhere.com/api/service/" ,  **{"payment" : True})
-        
-        return response
-        
+
+class ClientSearchWithouPagination(ClientSearchBaseAPIView):
+    pagination=False
+    
+    def _custom_logic(self, **kwargs):
+        auth_response = processApikey(self.serializer.validated_data.get("api_key"))
+        if auth_response["success"]:
+            if (auth_response["total_credits"] < 0):
+                raise RandomTableError("You don't have enough credit")
+        else:
+            raise RandomTableError(f"{auth_response}")
+            
+    
