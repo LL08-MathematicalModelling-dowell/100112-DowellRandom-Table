@@ -64,7 +64,9 @@ const Search = () => {
   };
 
   const callSecondEndpoint = async () => {
-    const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
+    // const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
+    const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}`);
+
     return response.json();
   };
 
