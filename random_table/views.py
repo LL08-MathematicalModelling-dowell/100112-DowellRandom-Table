@@ -12,6 +12,7 @@ import math
 from .serializers  import randomTableSerializers
 from .exceptions import RandomTableError
 from .authentication import processApikey
+from .utils import calculate_columns
 
 '''
 spark = SparkSes("CLIENT/static/data_filter.json")
@@ -32,6 +33,7 @@ class ClientAdd(APIView):
 
 def get_random_table_result(data , **kwargs):
         url = kwargs.get("url")
+        calc_col = kwargs.get("calculate_column")
         try:
             size = data.get("size")
             position = data.get("position")
@@ -49,8 +51,9 @@ def get_random_table_result(data , **kwargs):
                 "maximum" : maxi
             }
             
+            
             se = SearchEngine(size, position, number_of_fields ,  filter_method,
-                              api_key = api_key , pagination=False if not url else True ,  **extra_kwargs)
+                              api_key = api_key , pagination= False if not url else True ,  **extra_kwargs)
             
             if url:
                 next_data_link = f"{url}?api_key={api_key}&set_size={number_of_fields}&filter_method={filter_method}&size={size}&position={position+math.ceil(size/10000)}&value={value}&mini={mini}&maxi={maxi}"
@@ -61,6 +64,11 @@ def get_random_table_result(data , **kwargs):
         
         result = []
         arr = []
+        
+        if calc_col:
+            number_of_fields = calculate_columns(size)
+            print("Number of fields" , number_of_fields)
+        
         for d in rf:
                 arr.append(d)
                 if len(arr)==number_of_fields:
@@ -82,6 +90,7 @@ class ClientSearchBaseAPIView(APIView):
     custom_kwargs = {}
     pagination = True
     end_point = ""
+
     
     def _get_random_table(self , data , **kwargs):
         return get_random_table_result(data , **kwargs)
@@ -92,10 +101,12 @@ class ClientSearchBaseAPIView(APIView):
     
     def _custom_logic(self , **kwargs):
         pass
-        
+    
+    
     
     def get(self ,request):
         self.serializer = randomTableSerializers(data=request.GET)
+       
 
         if not self.serializer.is_valid():
             return JsonResponse({'error': self.serializer.errors}, status=400)
@@ -119,6 +130,7 @@ class ClientSearchBaseAPIView(APIView):
 
 class ClientSearch(ClientSearchBaseAPIView):
     end_point = "api"
+    custom_kwargs = {"payment" : False}
    
             
             
@@ -126,7 +138,6 @@ class ClientSearch(ClientSearchBaseAPIView):
 class ClientSearchwithDowellService(ClientSearchBaseAPIView):
     
     end_point = "api/service/"
-    
     
     def _custom_logic(self, **kwargs):
         auth_response = processApikey(self.serializer.validated_data.get("api_key"))
@@ -141,13 +152,5 @@ class ClientSearchwithDowellService(ClientSearchBaseAPIView):
 
 class ClientSearchWithouPagination(ClientSearchBaseAPIView):
     pagination=False
-    
-    def _custom_logic(self, **kwargs):
-        auth_response = processApikey(self.serializer.validated_data.get("api_key"))
-        if auth_response["success"]:
-            if (auth_response["total_credits"] < 0):
-                raise RandomTableError("You don't have enough credit")
-        else:
-            raise RandomTableError(f"{auth_response}")
-            
+    custom_kwargs = {"payment" : False , "calculate_column" : True}
     

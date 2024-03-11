@@ -4,7 +4,8 @@ import requests
 import json
 import concurrent.futures 
 import time
-import os
+
+from django.conf import settings
 
 from .utils import extract_digits , check_value_integer_string
 from .exceptions import DatabaseFetchError , RandomTableTypeError ,RandomTableFilteringError
@@ -35,7 +36,7 @@ class SearchEngine:
         if not position:
             position = 1
 
-        
+    
         if not pagination:
             self.total_filtered_data = self._processor_without_pagination(size , position , set_size , 
                                                                           filter_method , api_key = api_key, **kwargs)
@@ -81,21 +82,20 @@ class SearchEngine:
         
         total_filtered_data = pd.Series([])
                 
-        if size <= 500:
-            number_of_threads = 2
-            
-        elif size > 500 and size < 10000:
-            number_of_threads = 5 * math.ceil(size/500)
+        if size < 10000:
+            number_of_threads = 1
             
         elif size >= 10000 and size < 100000:
             
-            number_of_threads = 20 * math.ceil(size/10000)
+            number_of_threads = 2 * math.ceil(size/10000)
             
         else:
-            number_of_threads = 50 * math.ceil(size/100000)
+            number_of_threads = 5 * math.ceil(size/100000)
             
         
         for i in range(1, 1000 , number_of_threads):
+            
+            print("Thread starting")
             
             dfs_ = []
             
@@ -109,8 +109,10 @@ class SearchEngine:
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         dfs = future.result()
-                        print("lenght of data" , len(dfs))
                         dfs_.extend(dfs)
+                        
+                    except KeyboardInterrupt as e:
+                        executor.shutdown(wait = True)
                         
                     except Exception as e:
                         pass
@@ -127,7 +129,7 @@ class SearchEngine:
                 
             if total_filtered_data.any():
 
-                if len(total_filtered_data) >= size * set_size:
+                if len(total_filtered_data) >= size:
                     break
         
         
@@ -297,7 +299,7 @@ def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
     DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
     
     data = {
-        "api_key": api_key,
+        "api_key": api_key if api_key else settings.DATACUBE_API_KEY,
         "operation":"fetch",
         "db_name": "random_table",
         "coll_name": coll,
@@ -309,9 +311,12 @@ def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
     response = requests.get(DB_URL, data=data)
         
     if response.status_code != 200:
+            
             if "application/json" in response.headers.get("Content-Type", ""):
+                
                 raise DatabaseFetchError(response.json().get("message" , "Issue with the database fetch"))
             raise DatabaseFetchError("Issue with the Database Fetch")
+        
     try:
             response_data = json.loads(response.text)
     except Exception as e:
@@ -326,9 +331,6 @@ def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
                 if key == "_id" or key== "index":
                     continue 
                 result.append(rd[key])
-                
-                
-    print("Time it takes to unpack" , time.time() - start)
             
     return result
     
@@ -363,10 +365,11 @@ def fetch(coll , api_key  , limit = 1000 , **kwargs):
                 try:
                     result = future.result()
                     total_results.extend(result)
+                    
+                except KeyboardInterrupt as e:
+                    executor.shutdown(wait = True)
                 except Exception as e:
                     pass
-                    
-       
                     
         return total_results
             
