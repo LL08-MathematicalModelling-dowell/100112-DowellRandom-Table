@@ -63,14 +63,15 @@ class randomTableSerializers(serializers.Serializer):
     set_size = serializers.IntegerField(default = 10)
     value = serializers.CharField(max_length = 255 , required = False)
 
-    def __init__(self, instance=None, data=..., **kwargs):
+    def __init__(self, instance=None, data=None, **kwargs):
         payment = kwargs.pop("payment") if "payment" in kwargs else None
         super().__init__(instance, data, **kwargs)
         
-        if not (settings.USE_CLIENT_API_KEY or payment) :
+        if not (payment or settings.USE_CLIENT_API_KEY) :
 
             # Change the api_key field to not required if we aren't to accept client's API key.
             self.fields["api_key"].required = False
+            
 
         filter_method_value = self.initial_data.get("filter_method")
 
