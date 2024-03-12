@@ -67,7 +67,7 @@ def get_random_table_result(data , **kwargs):
         
         if calc_col:
             number_of_fields = calculate_columns(size)
-            print("Number of fields" , number_of_fields)
+            
         
         for d in rf:
                 arr.append(d)
@@ -134,7 +134,7 @@ class ClientSearch(ClientSearchBaseAPIView):
    
             
             
-            
+"""            
 class ClientSearchwithDowellService(ClientSearchBaseAPIView):
     
     end_point = "api/service/"
@@ -148,7 +148,7 @@ class ClientSearchwithDowellService(ClientSearchBaseAPIView):
             raise RandomTableError(f"{auth_response}")
             
     
-        
+"""       
 
 class ClientSearchWithouPagination(ClientSearchBaseAPIView):
     pagination=False

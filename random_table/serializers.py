@@ -53,7 +53,7 @@ class randomTableSerializers(serializers.Serializer):
     """
         A serializer that validates the user inputs from the GET request
     """
-    api_key = serializers.CharField(max_length = 255 ,required = False)
+    api_key = serializers.CharField(max_length = 255)
     filter_method = serializers.ChoiceField(choices=filter_choices)
     value = MixedTypeField(required = False)
     mini = serializers.IntegerField(required = False , default = 0)

@@ -50,7 +50,7 @@ class SearchEngine:
                 self.handle_filtering_error(self.error_messages[filter_method](kwargs.get("minimum") , kwargs.get("maximum")))
             else:
                 self.handle_filtering_error(self.error_messages[filter_method](kwargs.get("value")))
-        self.total_filtered_data = self.total_filtered_data[:size * set_size]
+        self.total_filtered_data = self.total_filtered_data[:size]
             
             
     def _processor_with_pagination(self , size , position , filter_method ,  api_key , **kwargs):
@@ -72,11 +72,6 @@ class SearchEngine:
         
         return self.filter_by_method(filter_method , **kwargs)
         
-    
-        
-        
-        
-        
         
     def _processor_without_pagination(self, size , position , set_size , filter_method , api_key = None, **kwargs):
         
@@ -95,11 +90,7 @@ class SearchEngine:
         
         for i in range(1, 1000 , number_of_threads):
             
-            print("Thread starting")
-            
             dfs_ = []
-            
-            start = time.time()
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_threads) as executor:
                 futures = [executor.submit(fetch , 'collection_'+str(i) , api_key , limit = size , **kwargs)\
@@ -133,7 +124,7 @@ class SearchEngine:
                     break
         
         
-        return total_filtered_data
+        return total_filtered_data[:size]
         
     def handle_filtering_error(self ,  message , df=None):
         if isinstance(df , pd.Series) and df.empty:
@@ -217,9 +208,6 @@ class SearchEngine:
         
         df = pd.concat([min_df,max_df])
         
-        self.handle_filtering_error(df , f"Can't find values that are not between {minimum} and {maximum}. \
-                                    The least value here is {self.df.min()} and the higest value is {self.df.max()} ")
-        
         return df
 
 
@@ -232,7 +220,6 @@ class SearchEngine:
     def filter_by_even(self):
         df = self.df[self.df%2==0]
         
-        self.handle_filtering_error(df , f"Can't find event number values. Increase the size")
         
         return df
     def filter_by_multiple_of(self, value):
@@ -299,7 +286,7 @@ def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
     DB_URL = "https://datacube.uxlivinglab.online/db_api/crud/"
     
     data = {
-        "api_key": api_key if api_key else settings.DATACUBE_API_KEY,
+        "api_key": api_key,
         "operation":"fetch",
         "db_name": "random_table",
         "coll_name": coll,
