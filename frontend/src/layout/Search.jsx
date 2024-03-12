@@ -16,7 +16,7 @@ const Search = () => {
 
   // const isSubmitDisabled = !apiKey || !randomTableSize || !size || !position || !valueCount || submitting;
 
-  const isSubmitDisabled = !size || !valueCount || submitting;
+  const isSubmitDisabled = !apiKey || !size || !valueCount || submitting;
 
 
   const handleSubmit = async () => {
@@ -65,7 +65,7 @@ const Search = () => {
 
   const callSecondEndpoint = async () => {
     // const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
-    const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}`);
+    const response = await fetch(`https://uxlivinglab200112.pythonanywhere.com/api/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}`);
 
     return response.json();
   };
@@ -121,13 +121,13 @@ const Search = () => {
           alignItems: "center",
         }}
       >
-        {/* <TextField
+        <TextField
           label="api_key"
           type="text"
           variant="outlined"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-        /> */}
+        />
         {/* <TextField
           label="random set size"
           type="number"
