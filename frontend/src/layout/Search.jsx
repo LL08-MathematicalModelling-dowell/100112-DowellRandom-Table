@@ -14,17 +14,20 @@ const Search = () => {
   const [nextLink, setNextLink] = useState(null);
   const [dataCsv, setDataCsv] = useState(null);
 
-  const isSubmitDisabled = !apiKey || !randomTableSize || !size || !position || !valueCount || submitting;
+  // const isSubmitDisabled = !apiKey || !randomTableSize || !size || !position || !valueCount || submitting;
+
+  const isSubmitDisabled = !apiKey || !size || !valueCount || submitting;
+
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    const firstResponse = await callFirstEndpoint();
-    if (firstResponse.success == false) {
-      clearFields();
-      setSubmitting(false);
-      alert(`${firstResponse.message}`);
-      return;
-    }
+    // const firstResponse = await callFirstEndpoint();
+    // if (firstResponse.success == false) {
+    //   clearFields();
+    //   setSubmitting(false);
+    //   alert(`${firstResponse.message}`);
+    //   return;
+    // }
     const secondResponse = await callSecondEndpoint();
    
     if (!secondResponse.data) {
@@ -61,7 +64,9 @@ const Search = () => {
   };
 
   const callSecondEndpoint = async () => {
-    const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
+    // const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
+    const response = await fetch(`https://uxlivinglab200112.pythonanywhere.com/api/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}`);
+
     return response.json();
   };
 
@@ -110,6 +115,7 @@ const Search = () => {
         sx={{
           display: "flex",
           flexDirection: "row",
+          gap : 2,
           padding: "16px",
           marginTop: "100px",
           alignItems: "center",
@@ -122,13 +128,13 @@ const Search = () => {
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
         />
-        <TextField
+        {/* <TextField
           label="random set size"
           type="number"
           variant="outlined"
           value={randomTableSize}
           onChange={(e) => setRandomTableSize(e.target.value)}
-        />
+        /> */}
 
         <TextField
           id="size-input"
@@ -138,14 +144,14 @@ const Search = () => {
           value={size}
           onChange={(e) => setSize(e.target.value)}
         />
-        <TextField
+        {/* <TextField
           id="size-input"
           label="Position of the page"
           type="number"
           variant="outlined"
           value={position}
           onChange={(e) => setPosition(e.target.value)}
-        />
+        /> */}
 
         <Select
           value={selectedFilterMethod}
@@ -175,24 +181,26 @@ const Search = () => {
         />
         }
 
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={isSubmitDisabled}
+          >
+            {submitting ? "Loading..." : "Submit"}
+          </Button>
+
        
       </Box>
-      {nextLink && (
+      {/* {nextLink && (
         <Button
           onClick={reloadNextData}
           variant="contained"
         >
           Next Data
         </Button>
-      )}
+      )} */}
 
-      <Button
-        onClick={handleSubmit}
-        variant="contained"
-        disabled={isSubmitDisabled}
-      >
-        {submitting ? "Loading..." : "Submit"}
-      </Button>
+      
 
       <Box>
         {dataCsv && <CsvTable data={dataCsv} />}
