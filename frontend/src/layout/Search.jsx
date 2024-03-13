@@ -8,7 +8,7 @@ const Search = () => {
   const [randomTableSize, setRandomTableSize] = useState("");
   const [size, setSize] = useState("");
   const [position, setPosition] = useState("");
-  const [valueCount, setValueCount] = useState("");
+  const [valueCount, setValueCount] = useState({});
   const [selectedFilterMethod, setSelectedFilterMethod] = useState(FilteringMethods[0]);
   const [submitting, setSubmitting] = useState(false);
   const [nextLink, setNextLink] = useState(null);
@@ -16,8 +16,10 @@ const Search = () => {
 
   // const isSubmitDisabled = !apiKey || !randomTableSize || !size || !position || !valueCount || submitting;
 
-  const isSubmitDisabled = !apiKey || !size || !valueCount || submitting;
+  const isOddOrEven = selectedFilterMethod.method === "odd" || selectedFilterMethod.method === "even";
 
+  const isSubmitDisabled = !apiKey || !size || (isOddOrEven ? false : !valueCount) || submitting;
+  
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -65,8 +67,17 @@ const Search = () => {
 
   const callSecondEndpoint = async () => {
     // const response = await fetch(`http://uxlivinglab200112.pythonanywhere.com/api/service/without_pagination/?set_size=${randomTableSize}&size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}&position=${position}`);
-    const response = await fetch(`https://uxlivinglab200112.pythonanywhere.com/api/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&value=${valueCount}&api_key=${apiKey}`);
+    let url = `https://uxlivinglab200112.pythonanywhere.com/api/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&api_key=${apiKey}`;
 
+    if (selectedFilterMethod.method !== "no_filtering" && selectedFilterMethod.inputs.length > 0) {
+      // Check if the selected filter method requires additional input
+      for (let input of selectedFilterMethod.inputs) {
+        // Append each input from valueCount to the URL
+        url += `&${input}=${valueCount[input]}`;
+      }
+    }
+    
+    const response = await fetch(url);
     return response.json();
   };
 
@@ -172,14 +183,18 @@ const Search = () => {
         </Select>
 
         {
-          selectedFilterMethod !==  FilteringMethods[0] && <TextField
-          label="value"
-          type="number"
-          variant="outlined"
-          value={valueCount}
-          onChange={(e) => setValueCount(e.target.value)}
-        />
-        }
+            selectedFilterMethod.inputs.map((input, index) => (
+              <TextField
+                key={index}
+                label={input}
+                type="number"
+                variant="outlined"
+                value={valueCount[input] || ''}
+                onChange={(e) => setValueCount({ ...valueCount, [input]: e.target.value })}
+              />
+            ))
+          }
+
 
           <Button
             onClick={handleSubmit}
@@ -246,13 +261,13 @@ const FilteringMethods = [
   {
     label: "In between",
     method: "between",
-    inputs: ["minimum", "maximum"],
+    inputs: ["mini", "maxi"],
   },
 
   {
     label: "Not in between",
     method: "not_between",
-    inputs: ["minimum", "maximum"],
+    inputs: ["mini", "maxi"],
   },
   {
     label: "Greater than",
