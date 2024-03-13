@@ -1,72 +1,111 @@
 import React, { useEffect, useState } from "react";
-import { TextField, Select, MenuItem, Button, Box } from "@mui/material";
-
-import { useGetClient } from "./getClient";
+import { TextField, Select, MenuItem, Button, Box, CircularProgress } from "@mui/material";
 import { Status } from "./status";
-
-// const filterValuesParams = (searchValues) => {
-//   const urlPart = searchValues.map((value) => {
-//     return `&${value.label}=${value.value}`;
-//   });
-//   console.log(urlPart.join(""))
-
-//   return urlPart.join("");
-// };
-
+import CsvTable from "./csvTable";
+import LoadingSpinner from "./Spinner";
 
 const Search = () => {
-  const [searchValues, setSearchValues] = useState(
-    FilteringMethods[0].inputs.map((v) => {
-      return { label: v, value: "" };
-    })
-  );
-
-  const [size, setSize] = useState("");
-  const [position, setPosition] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [valueCount, setValueCount] = useState("");
-  const [randomTableSize, setRandomTableSize] = useState("");
-  const [nextLink, setNextLink] = useState();
+  const [size, setSize] = useState("");
+  const [valueCount, setValueCount] = useState({});
+  const [selectedFilterMethod, setSelectedFilterMethod] = useState(FilteringMethods[0]);
+  const [submitting, setSubmitting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [nextLink, setNextLink] = useState(null);
+  const [dataCsv, setDataCsv] = useState(null);
 
-  const [selectedFilterMethod, setSelectedFilterMethod] = useState(
-    FilteringMethods[0]
-  );
+  const isOddOrEven = selectedFilterMethod.method === "odd" || selectedFilterMethod.method === "even";
 
-  const { status, responseData, reload } = useGetClient(
-    `http://uxlivinglab200112.pythonanywhere.com/api?set_size=${randomTableSize}&size=${size}&filter_method=${
-      selectedFilterMethod.method
-    }&value=${valueCount}&api_key=${apiKey}&position=${position}`
-  );
+  const isSubmitDisabled = !apiKey || !size || (isOddOrEven ? false : !valueCount) || submitting;
+  
 
-  const {
-    status: nextStatus,
-    responseData: nextResponseData,
-    reload: reloadNextData,
-  } = useGetClient(nextLink);
+const jsonToCsv = (jsonData) => {
+  let csv = "";
 
-  const submitRandomTableRequest = () => {
-    reload();
+  jsonData.forEach(function (row) {
+    let data = row.join(",");
+    csv += data + "\n";
+  });
+  return csv;
+};
+
+const downloadCsvfile = (data) => {
+  setDownloading(true);
+  let csvData = jsonToCsv(data);
+  let blob = new Blob([csvData], { type: "text/csv" });
+  let url = window.URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "data.csv";
+  document.body.appendChild(a);
+  a.click();
+  setDownloading(false);
+};
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    const secondResponse = await callSecondEndpoint();
+   
+    if (!secondResponse.data) {
+      clearFields();
+      setSubmitting(false);
+      
+      let errorMessage = "";
+    
+      if (secondResponse.error) {
+        if (typeof secondResponse.error === "object") {
+          Object.entries(secondResponse.error).forEach(([key, value]) => {
+            errorMessage += `\n${key}: ${value.join(", ")}`;
+          });
+        } else {
+          errorMessage = secondResponse.error;
+        }
+      }
+    
+      alert(errorMessage);
+      return;
+    }
+    
+    setDataCsv(secondResponse.data);
+    if (secondResponse.next_data_link) {
+      setNextLink(secondResponse.next_data_link);
+    }
+    setSubmitting(false);
   };
 
-  useEffect(() => {
-    if (status == Status.Success && responseData !== undefined) {
-      downloadCsvfile(responseData["data"]);
-      setNextLink(responseData["next_data_link"]);
-      return;
-    }
-    status === Status.Error && alert("something went wrong! please try again");
-  }, [status, responseData]);
+  const callSecondEndpoint = async () => {
+    let url = `https://uxlivinglab200112.pythonanywhere.com/api/without_pagination/?size=${size}&filter_method=${selectedFilterMethod.method}&api_key=${apiKey}`;
 
-  useEffect(() => {
-    if (nextStatus == Status.Success && nextResponseData !== undefined) {
-      downloadCsvfile(nextResponseData["data"]);
-      setNextLink(nextResponseData["next_data_link"]);
-      return;
+    if (selectedFilterMethod.method !== "no_filtering" && selectedFilterMethod.inputs.length > 0) {
+      for (let input of selectedFilterMethod.inputs) {
+        url += `&${input}=${valueCount[input]}`;
+      }
     }
+    
+    const response = await fetch(url);
+    return response.json();
+  };
 
-    nextStatus === Status.Error &&
-      alert("something went wrong! please try again");
-  }, [nextStatus, nextResponseData]);
+  const reloadNextData = async () => {
+    const response = await fetch(nextLink);
+    const data = await response.json();
+    setDataCsv(data.data);
+    if (!data.next_data_link) {
+      setNextLink(data.next_data_link);
+    }
+  }
+
+  const clearFields = () => {
+    setApiKey("");
+    setSize("");
+    setValueCount("");
+  };
+
+  const handleDownloadCsv = () => {
+    if (dataCsv) {
+      downloadCsvfile(dataCsv);
+    }
+  };
 
   return (
     <>
@@ -74,6 +113,7 @@ const Search = () => {
         sx={{
           display: "flex",
           flexDirection: "row",
+          gap : 2,
           padding: "16px",
           marginTop: "100px",
           alignItems: "center",
@@ -86,13 +126,6 @@ const Search = () => {
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
         />
-        <TextField
-          label="random set size"
-          type="number"
-          variant="outlined"
-          value={randomTableSize}
-          onChange={(e) => setRandomTableSize(e.target.value)}
-        />
 
         <TextField
           id="size-input"
@@ -101,14 +134,6 @@ const Search = () => {
           variant="outlined"
           value={size}
           onChange={(e) => setSize(e.target.value)}
-        />
-        <TextField
-          id="size-input"
-          label="Position of the page"
-          type="number"
-          variant="outlined"
-          value={position}
-          onChange={(e) => setPosition(e.target.value)}
         />
 
         <Select
@@ -119,8 +144,6 @@ const Search = () => {
             const sv = e.target.value.inputs.map((v) => {
               return { label: v, value: "" };
             });
-
-            setSearchValues(sv);
           }}
           renderValue={(val) => val.label}
         >
@@ -132,34 +155,62 @@ const Search = () => {
         </Select>
 
         {
-          selectedFilterMethod !==  FilteringMethods[0] && <TextField
-          label="value"
-          type="number"
-          variant="outlined"
-          value={valueCount}
-          onChange={(e) => setValueCount(e.target.value)}
-        />
-        }
+            selectedFilterMethod.inputs.map((input, index) => (
+              <TextField
+                key={index}
+                label={input}
+                type="number"
+                variant="outlined"
+                value={valueCount[input] || ''}
+                onChange={(e) => setValueCount({ ...valueCount, [input]: e.target.value })}
+              />
+            ))
+          }
 
-       
+
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={isSubmitDisabled}
+          >
+            {submitting ? <CircularProgress size={24} color="inherit" /> : "Submit"}
+          </Button>
       </Box>
-      {responseData === undefined || (
-        <Button
-          onClick={reloadNextData}
-          variant="contained"
-          disabled={nextStatus === Status.Pending}
-        >
-          {nextStatus === Status.Pending ? "loading..." : "Next Data"}
-        </Button>
-      )}
 
-      <Button
-        variant="contained"
-        onClick={submitRandomTableRequest}
-        disabled={status === Status.Pending}
-      >
-        {status === Status.Pending ? "loading..." : "Submit"}
-      </Button>
+      <Box>
+        {submitting ? (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            <LoadingSpinner />
+          </Box>
+        ) : (
+          dataCsv && (
+            <>
+              <CsvTable data={dataCsv} />
+              <Button
+                sx={{
+                  display: 'flex',
+                  alignItems: 'end',
+                  justifyContent: 'end',
+                }}
+                onClick={handleDownloadCsv}
+                variant="contained"
+                disabled={!dataCsv}
+              >
+                {downloading ? <CircularProgress size={24} color="inherit" /> : "Download CSV"}
+              </Button>
+            </>
+          )
+        )}
+      </Box>
+
     </>
   );
 };
@@ -200,14 +251,14 @@ const FilteringMethods = [
 
   {
     label: "In between",
-    method: "in_between",
-    inputs: ["minimum", "maximum"],
+    method: "between",
+    inputs: ["mini", "maxi"],
   },
 
   {
     label: "Not in between",
-    method: "not_in_between",
-    inputs: ["minimum", "maximum"],
+    method: "not_between",
+    inputs: ["mini", "maxi"],
   },
   {
     label: "Greater than",
@@ -237,23 +288,3 @@ const FilteringMethods = [
   },
 ];
 
-const jsonToCsv = (jsonData) => {
-  let csv = "";
-
-  jsonData.forEach(function (row) {
-    let data = row.join(",");
-    csv += data + "\n";
-  });
-  return csv;
-};
-
-const downloadCsvfile = (data) => {
-  let csvData = jsonToCsv(data);
-  let blob = new Blob([csvData], { type: "text/csv" });
-  let url = window.URL.createObjectURL(blob);
-  let a = document.createElement("a");
-  a.href = url;
-  a.download = "data.csv";
-  document.body.appendChild(a);
-  a.click();
-};
