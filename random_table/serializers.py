@@ -1,6 +1,8 @@
 import inspect
 
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -56,21 +58,26 @@ class randomTableSerializers(serializers.Serializer):
     api_key = serializers.CharField(max_length = 255)
     filter_method = serializers.ChoiceField(choices=filter_choices)
     value = MixedTypeField(required = False)
-    mini = serializers.IntegerField(required = False , default = 0)
-    maxi = serializers.IntegerField(required = False , default = 0)
+    mini = serializers.IntegerField(required = False ,
+                                    validators = [
+                                        MinValueValidator(10000000),
+                                        MaxValueValidator(99999999)],
+                                    default = 10000000)
+    maxi = serializers.IntegerField(required = False , default = 99999999)
     position = serializers.IntegerField(default = 1)
     size = serializers.IntegerField(default = 10)
     set_size = serializers.IntegerField(default = 10)
     value = serializers.CharField(max_length = 255 , required = False)
 
-    def __init__(self, instance=None, data=..., **kwargs):
+    def __init__(self, instance=None, data=None, **kwargs):
         payment = kwargs.pop("payment") if "payment" in kwargs else None
         super().__init__(instance, data, **kwargs)
         
-        if not (settings.USE_CLIENT_API_KEY or payment) :
+        if not (payment or settings.USE_CLIENT_API_KEY) :
 
             # Change the api_key field to not required if we aren't to accept client's API key.
             self.fields["api_key"].required = False
+            
 
         filter_method_value = self.initial_data.get("filter_method")
 
@@ -95,6 +102,23 @@ class randomTableSerializers(serializers.Serializer):
                 return int(value)
             return value
         return value
+    
+    
+    def validate(self , attrs):
+        filter_method = attrs.get("filter_method")
+        value = attrs.get("value")
+        
+        if filter_method in ["greater_than" , "less_than"]:
+            if (filter_method == "less_than" and value <= 10000000):
+                raise ValidationError(f'''Filter_method - {filter_method}: You need to provide a value that's greater than an
+                                      8 digit number for value ''')
+            
+            elif(filter_method == "greater_than" and value >= 99999999):
+                raise ValidationError(f'''Filter_method - {filter_method}: ou need to provide a value that's less than an
+                                      8 digit number for value ''')
+        
+        return attrs
+            
     
     
 
