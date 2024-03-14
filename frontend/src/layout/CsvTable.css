@@ -28,3 +28,19 @@
     background-color: #ddd;
   }
   
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .loading-message {
+    font-size: 10px; /* Adjust font size as needed */
+    margin-top: 8px; /* Add spacing between spinner and message */
+  }
+  
+  .bold-header {
+    font-weight: bold;
+}

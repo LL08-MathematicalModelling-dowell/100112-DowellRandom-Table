@@ -1,30 +1,39 @@
-import React from "react";
-import "./CsvTable.css"; // Import CSS file for styling
+import * as React from 'react';
+import { DataGrid } from '@mui/x-data-grid';
+import "./CsvTable.css";
 
-const CsvTable = ({ data }) => {
+const DataTable = ({ data }) => {
+  const columns = data.length > 0 ? data[0].map((header, index) => ({
+    field: `field${index + 1}`,
+    headerName: `Field ${index + 1}`,
+    flex: 1,
+    headerClassName: 'bold-header', // Add this line
+  })) : [];
+
+  const rows = data.map((row, rowIndex) => ({
+    id: rowIndex + 1,
+    ...row.reduce((acc, cell, cellIndex) => ({
+      ...acc,
+      [`field${cellIndex + 1}`]: cell
+    }), {})
+  }));
+
   return (
     <div className="csv-table-container">
-      <table className="csv-table">
-      <thead>
-        <tr>
-          {data.length > 0 &&
-            data[0].map((header, index) => (
-              <th key={index}>Field {index + 1}</th>
-            ))}
-        </tr>
-      </thead>
-        <tbody>
-          {data.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              {row.map((cell, cellIndex) => (
-                <td key={cellIndex}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div style={{ height: 400, width: '100%' }}>
+        <DataGrid
+          rows={rows}
+          columns={columns}
+          initialState={{
+            pagination: {
+              paginationModel: { page: 0, pageSize: 5 },
+            },
+          }}
+          pageSizeOptions={[5, 10]}
+        />
+      </div>
     </div>
   );
 };
 
-export default CsvTable;
+export default DataTable;
