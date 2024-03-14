@@ -24,6 +24,3 @@ def calculate_columns(size):
     columns = size // rows
 
     return columns
-
-    
-    

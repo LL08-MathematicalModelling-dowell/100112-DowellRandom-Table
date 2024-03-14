@@ -146,11 +146,20 @@ class ClientSearchwithDowellService(ClientSearchBaseAPIView):
                 raise RandomTableError("You don't have enough credit")
         else:
             raise RandomTableError(f"{auth_response}")
-            
-    
+
 """       
 
 class ClientSearchWithouPagination(ClientSearchBaseAPIView):
     pagination=False
     custom_kwargs = {"payment" : False , "calculate_column" : True}
+    
+class ClientSearchWithoutPaginationService(ClientSearchWithouPagination):
+    
+    def _custom_logic(self, **kwargs):
+        auth_response = processApikey(self.serializer.validated_data.get("api_key"))
+        if auth_response["success"]:
+            if (auth_response["total_credits"] < 0):
+                raise RandomTableError("You don't have enough credit")
+        else:
+            raise RandomTableError(f"{auth_response}")
     
