@@ -8,7 +8,6 @@ from rest_framework.exceptions import ValidationError
 
 
 from .functions import SearchEngine
-from .utils import check_if_8digits
 
 
 # Filter choices gotten from the methods of the Search Engine classes. 
