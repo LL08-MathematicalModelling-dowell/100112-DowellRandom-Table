@@ -41,6 +41,24 @@
     margin-top: 8px; /* Add spacing between spinner and message */
   }
   
-  .bold-header {
-    font-weight: bold;
-}
+  .super-app-theme--header {
+    color: black;
+    font-weight: unset;
+    margin: #ccc;
+    background: #1976D2;
+    text-align: center;
+    display: flex; /* Make it a flex container */
+    justify-content: center; /* Align items horizontally to center */
+    align-items: center; /* Align items vertically to center */
+  }
+  
+
+  .css-t89xny-MuiDataGrid-columnHeaderTitle{
+    font-weight: unset;
+  }
+
+  .super-app-theme--row {
+    background-color: #f8f9fa; /* Set the background color for the rows */
+    color: #212529; /* Set the text color for the rows */
+    border-bottom: 1px solid #dee2e6; /* Add border bottom to separate rows */
+  }

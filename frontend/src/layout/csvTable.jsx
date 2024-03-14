@@ -3,11 +3,15 @@ import { DataGrid } from '@mui/x-data-grid';
 import "./CsvTable.css";
 
 const DataTable = ({ data }) => {
+  const getRowClassName = React.useCallback((params) => {
+    return `super-app-theme--row`;
+  }, []);
+
   const columns = data.length > 0 ? data[0].map((header, index) => ({
     field: `field${index + 1}`,
     headerName: `Field ${index + 1}`,
     flex: 1,
-    headerClassName: 'bold-header', // Add this line
+    headerClassName: 'super-app-theme--header', // Add this line
   })) : [];
 
   const rows = data.map((row, rowIndex) => ({
@@ -24,6 +28,7 @@ const DataTable = ({ data }) => {
         <DataGrid
           rows={rows}
           columns={columns}
+          getRowClassName={getRowClassName} // Apply custom row styles using getRowClassName
           initialState={{
             pagination: {
               paginationModel: { page: 0, pageSize: 5 },
