@@ -98,7 +98,6 @@ class SearchEngine:
             
             dfs_ = []
             
-            print("Thread starting" , i)
             
             if number_of_threads == 1:
                 dfs_.extend(fetch('collection_'+ str(i) , api_key , limit = size))
