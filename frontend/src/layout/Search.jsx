@@ -60,8 +60,7 @@ const downloadCsvfile = (data) => {
         } else {
           errorMessage = secondResponse.error;
         }
-      }
-    
+      } 
       alert(errorMessage);
       return;
     }
@@ -83,6 +82,10 @@ const downloadCsvfile = (data) => {
     }
     
     const response = await fetch(url);
+    if (response.status == 500){
+      alert("Unexpected error");
+    }
+    setSubmitting(false)
     return response.json();
   };
 
@@ -286,5 +289,17 @@ const FilteringMethods = [
     method: "multiple_of",
     inputs: ["value"],
   },
+
+  {
+    label: "By One Digit",
+    method: "one_digits",
+    inputs: [],
+  },
+
+  {
+    label: "By First and Last Digit",
+    method: "first_and_last_digits",
+    inputs: [],
+  }
 ];
 
