@@ -8,6 +8,7 @@ def processApikey(api_key):
     }
     try:
         response = requests.post(url, json=payload)
+        print("RESONSE" , response.status_code , response.json())
         return response.json()
     except Exception as e:
         raise e
