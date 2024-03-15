@@ -77,36 +77,51 @@ class SearchEngine:
         
         total_filtered_data = pd.Series([])
                 
-        if size < 10000:
+        if size <= 1000:
             number_of_threads = 1
+            
+        elif size < 10000:
+            number_of_threads = 2 * math.ceil(size/1000)
             
         elif size >= 10000 and size < 100000:
             
-            number_of_threads = 2 * math.ceil(size/10000)
+            number_of_threads = 5 * math.ceil(size/10000)
             
         else:
-            number_of_threads = 5 * math.ceil(size/100000)
+            number_of_threads = 10 * math.ceil(size/100000)
+            
+            
+        number_of_iterations = 0
             
         
         for i in range(1, 1000 , number_of_threads):
             
             dfs_ = []
             
-            with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_threads) as executor:
-                futures = [executor.submit(fetch , 'collection_'+str(i) , api_key , limit = size , **kwargs)\
-                                    for i in range(i ,  i + number_of_threads)]
-                
+            print("Thread starting" , i)
             
-                for future in concurrent.futures.as_completed(futures):
-                    try:
-                        dfs = future.result()
-                        dfs_.extend(dfs)
+            if number_of_threads == 1:
+                dfs_.extend(fetch('collection_'+ str(i) , api_key , limit = size))
+                
+            else:
+            
+                with concurrent.futures.ThreadPoolExecutor(max_workers=number_of_threads) as executor:
+                    futures = [executor.submit(fetch , 'collection_'+str(i) , api_key , limit = size , **kwargs)\
+                                        for i in range(i ,  i + number_of_threads)]
+                    
+                
+                    for future in concurrent.futures.as_completed(futures):
+                        try:
+                            dfs = future.result()
+                            dfs_.extend(dfs)
+                            
+                        except KeyboardInterrupt as e:
+                            executor.shutdown(wait = True)
+                            
+                        except Exception as e:
+                            pass
                         
-                    except KeyboardInterrupt as e:
-                        executor.shutdown(wait = True)
-                        
-                    except Exception as e:
-                        pass
+            number_of_iterations += 1
                         
 
             if not dfs_:
@@ -117,11 +132,13 @@ class SearchEngine:
             filtered_data = self.filter_by_method(filter_method , **kwargs)
             total_filtered_data = pd.concat([total_filtered_data , filtered_data])
             
-                
             if total_filtered_data.any():
 
                 if len(total_filtered_data) >= size:
                     break
+                
+            if number_of_iterations > 5 and total_filtered_data.empty:
+                raise RandomTableFilteringError("Gone through a million numbers and can't find what you want")
         
         
         return total_filtered_data[:size]
@@ -322,8 +339,6 @@ def fetch_data(coll , api_key , offset = 0 , limit = 1000 ,  **kwargs):
     return result
     
 
-
-
 def fetch(coll , api_key  , limit = 1000 , **kwargs):
     
     number_of_rounds = round(1000/limit)
@@ -331,11 +346,7 @@ def fetch(coll , api_key  , limit = 1000 , **kwargs):
     if limit > 500:
         return fetch_data(coll , api_key , limit = limit , **kwargs)
     
-    else:
-        
-        
-        
-        
+    else:        
         if number_of_rounds >= 10:
             number_of_rounds = 2
 
