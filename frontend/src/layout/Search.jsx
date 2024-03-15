@@ -36,7 +36,7 @@ const downloadCsvfile = (data) => {
   let url = window.URL.createObjectURL(blob);
   let a = document.createElement("a");
   a.href = url;
-  a.download = "data.csv";
+  a.download = "DoWell_RandomTable_Data.csv";
   document.body.appendChild(a);
   a.click();
   setDownloading(false);
